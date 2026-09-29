@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Portal</title>
+  <style>
+    :root {
+      --bg: #fbfbfd;
+      --card: rgba(255, 255, 255, 0.85);
+      --text: #1d1d1f;
+      --sub: #6e6e73;
+      --border: rgba(0, 0, 0, 0.08);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg);
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+      color: var(--text);
+      padding: clamp(12px, 2vw, 24px) clamp(12px, 3vw, 24px) calc(40px + env(safe-area-inset-bottom)) clamp(12px, 3vw, 24px);
+      max-width: 760px;
+      margin: 0 auto;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .view { display: flex; flex-direction: column; gap: clamp(10px, 1.8vw, 16px); width: 100%; }
+    .hidden { display: none !important; }
+
+    /* すりガラスカード */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: clamp(12px, 2vw, 18px);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+    }
+
+    /* 1. ヘッダー / ステータスバー */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-left { display: flex; flex-direction: column; flex-shrink: 0; }
+    .date { font-size: clamp(0.75rem, 1.1vw, 0.9rem); color: var(--sub); font-weight: 500; }
+    .time { font-size: clamp(1.8rem, 3.8vw, 2.6rem); font-weight: 700; line-height: 1; letter-spacing: -0.03em; }
+
+    .header-center {
+      flex: 1;
+      text-align: center;
+      padding: 0 6px;
+      overflow: hidden;
+    }
+    .header-custom-text {
+      font-size: clamp(0.8rem, 1.2vw, 1rem);
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .weather {
+      font-size: clamp(0.72rem, 1vw, 0.82rem);
+      color: var(--sub);
+      background: rgba(0,0,0,0.04);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .settings-btn {
+      background: rgba(0,0,0,0.05); border: none; padding: 6px 14px; border-radius: 20px;
+      cursor: pointer; font-size: clamp(0.8rem, 1.1vw, 0.9rem); color: var(--text); font-weight: 600;
+      transition: background 0.2s; white-space: nowrap;
+    }
+    .settings-btn:active { background: rgba(0,0,0,0.12); }
+
+    /* 2. 流れる電光掲示板 */
+    .ticker-wrap {
+      overflow: hidden; white-space: nowrap; background: var(--card);
+      border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    }
+    .ticker-content {
+      display: inline-block; padding-left: 100%; animation: marquee 15s linear infinite;
+      font-size: clamp(0.85rem, 1.2vw, 0.95rem); font-weight: 500; color: var(--text);
+    }
+    @keyframes marquee { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+
+    /* 3. 時間割（1〜7限） */
+    .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .schedule-title-group { display: flex; align-items: center; gap: 8px; }
+    .schedule-title { font-size: clamp(0.9rem, 1.3vw, 1.05rem); font-weight: 700; }
+    .schedule-badge { font-size: 0.75rem; background: var(--text); color: #fff; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(clamp(85px, 13vw, 110px), 1fr));
+      gap: 8px;
+    }
+    .slot {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 10px 6px; text-align: center; min-height: clamp(75px, 10vw, 90px);
+      display: flex; flex-direction: column; justify-content: center; gap: 2px;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    }
+    .num { font-size: 0.7rem; color: var(--sub); font-weight: 600; }
+    .subject { font-size: clamp(0.85rem, 1.1vw, 0.95rem); font-weight: 700; word-break: break-all; }
+    .detail { font-size: 0.68rem; color: var(--sub); word-break: break-all; line-height: 1.15; }
+
+    .date-nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; }
+    .nav-btn {
+      flex: 1; padding: 8px 4px; border: 1px solid var(--border); border-radius: 10px;
+      background: var(--card); color: var(--text); font-size: clamp(0.75rem, 1.1vw, 0.85rem);
+      font-weight: 600; cursor: pointer; text-align: center; backdrop-filter: blur(16px);
+      transition: background 0.15s;
+    }
+    .nav-btn:active { background: rgba(0,0,0,0.08); }
+    .nav-btn.active-day { border-color: var(--text); background: rgba(0,0,0,0.05); }
+
+    /* 4. 小型LINK */
+    .home-links-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .compact-link-btn {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: clamp(8px, 1.2vw, 12px) 4px; font-size: clamp(0.72rem, 1vw, 0.82rem); font-weight: 600; color: var(--text);
+      text-align: center; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    }
+    .compact-link-btn:active { background: rgba(0,0,0,0.08); }
+
+    /* 設定画面 UI */
+    .settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .settings-title { font-size: 1.2rem; font-weight: 700; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-label { font-size: 0.82rem; font-weight: 600; color: var(--sub); }
+    .input {
+      width: 100%; padding: 10px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 0.9rem; background: rgba(245, 245, 247, 0.8); outline: none;
+    }
+    .file-input-wrapper { display: flex; gap: 8px; align-items: center; }
+
+    .date-select-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; scrollbar-width: none; }
+    .date-select-bar::-webkit-scrollbar { display: none; }
+    .date-chip { flex: 0 0 auto; padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border); font-size: 0.78rem; font-weight: 600; background: #fff; cursor: pointer; color: var(--sub); }
+    .date-chip.selected { background: var(--text); color: #fff; border-color: var(--text); }
+
+    .schedule-editor-grid { display: flex; flex-direction: column; gap: 8px; }
+    .period-edit-row { display: flex; gap: 6px; align-items: center; }
+    .period-tag { font-size: 0.75rem; font-weight: 700; width: 32px; color: var(--sub); flex-shrink: 0; }
+
+    .link-edit-item { display: flex; gap: 6px; align-items: center; background: rgba(249, 249, 251, 0.8); padding: 8px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 6px; }
+    .del-btn { background: #ff3b30; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+    .del-btn:active { opacity: 0.8; }
+    .add-btn { background: #34c759; color: #fff; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+    .save-btn { background: var(--text); color: #fff; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+
+    /* モーダル */
+    .modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 1000;
+    }
+    .modal.active { opacity: 1; pointer-events: auto; }
+    .modal-box {
+      background: var(--card); width: 90%; max-width: 380px; border-radius: 20px; padding: 20px;
+      display: flex; flex-direction: column; gap: 12px; backdrop-filter: blur(20px); position: relative;
+    }
+    
+    .modal-header { display: flex; justify-content: space-between; align-items: center; }
+    .modal-close-btn {
+      background: rgba(0,0,0,0.06); border: none; font-size: 1.1rem; width: 30px; height: 30px;
+      border-radius: 15px; cursor: pointer; color: var(--sub); font-weight: bold;
+      display: flex; align-items: center; justify-content: center; line-height: 1;
+    }
+    .modal-close-btn:active { background: rgba(0,0,0,0.15); }
+  </style>
+</head>
+<body>
+
+  <!-- ================= ホーム画面 ================= -->
+  <div id="home-view" class="view">
+    <header class="card status-bar">
+      <div class="header-left">
+        <div id="date" class="date">--/-- (-)</div>
+        <div id="time" class="time">00:00</div>
+      </div>
+
+      <div class="header-center">
+        <div id="header-custom-display" class="header-custom-text"></div>
+      </div>
+
+      <div class="header-right">
+        <div id="weather" class="weather">福岡 --°C</div>
+        <button class="settings-btn" onclick="openAuthModal()">設定</button>
+      </div>
+    </header>
+
+    <div class="ticker-wrap">
+      <div id="ticker-text" class="ticker-content"></div>
+    </div>
+
+    <div class="card">
+      <div class="schedule-header">
+        <div class="schedule-title-group">
+          <span class="schedule-title">時間割</span>
+          <span id="schedule-target-label" class="schedule-badge">--</span>
+        </div>
+      </div>
+      
+      <div class="grid">
+        <div class="slot"><span class="num">1限</span><span id="sub-1" class="subject"></span><span id="det-1" class="detail"></span></div>
+        <div class="slot"><span class="num">2限</span><span id="sub-2" class="subject"></span><span id="det-2" class="detail"></span></div>
+        <div class="slot"><span class="num">3限</span><span id="sub-3" class="subject"></span><span id="det-3" class="detail"></span></div>
+        <div class="slot"><span class="num">4限</span><span id="sub-4" class="subject"></span><span id="det-4" class="detail"></span></div>
+        <div class="slot"><span class="num">5限</span><span id="sub-5" class="subject"></span><span id="det-5" class="detail"></span></div>
+        <div class="slot"><span class="num">6限</span><span id="sub-6" class="subject"></span><span id="det-6" class="detail"></span></div>
+        <div class="slot"><span class="num">7限</span><span id="sub-7" class="subject"></span><span id="det-7" class="detail"></span></div>
+      </div>
+
+      <div class="date-nav">
+        <button id="btn-day-prev" class="nav-btn" onclick="switchHomeOffset(-1)">◀ 昨日</button>
+        <button id="btn-day-today" class="nav-btn" onclick="switchHomeOffset(0)">今日</button>
+        <button id="btn-day-next" class="nav-btn" onclick="switchHomeOffset(1)">明日 ▶</button>
+      </div>
+    </div>
+
+    <div id="home-links" class="home-links-grid"></div>
+  </div>
+
+  <!-- ================= 設定画面 ================= -->
+  <div id="settings-view" class="view hidden">
+    <div class="card">
+      <div class="settings-header">
+        <span class="settings-title">設定</span>
+        <button class="settings-btn" onclick="showHome()">閉じる</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">パスワード設定</label>
+        <input type="password" id="cfg-password" class="input" placeholder="新しいパスワード（空欄の場合は変更なし）">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">ヘッダー表示テキスト（時間と天気の間の文字）</label>
+        <input type="text" id="cfg-header-text" class="input" placeholder="例: 3年A組 / 本日の目標 など">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">背景色</label>
+        <input type="color" id="cfg-bg-color" value="#fbfbfd" style="width: 100%; height: 38px; border: none; cursor: pointer; border-radius: 8px;">
+      </div>
+      
+      <!-- 背景画像設定（✕解除ボタン追加、URL欄削除） -->
+      <div class="form-group">
+        <label class="form-label">背景画像（端末のファイルから挿入）</label>
+        <div class="file-input-wrapper">
+          <input type="file" id="cfg-bg-file" accept="image/*" class="input" onchange="handleFileSelect(event)" style="flex: 1;">
+          <button type="button" class="del-btn" onclick="clearBgImage()">✕ 画像解除</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">流れるお知らせ（掲示板）</label>
+        <input type="text" id="cfg-notice" class="input" placeholder="連絡事項を入力">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">時間割の管理（昨日 〜 来週の今日：8日分）</label>
+        <div id="date-select-bar" class="date-select-bar"></div>
+        <div id="schedule-editor" class="schedule-editor-grid"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">LINK設定</label>
+        <div id="link-editor-list"></div>
+        <button class="add-btn" onclick="addLinkItem()">＋ リンクを追加</button>
+      </div>
+
+      <button class="save-btn" onclick="saveSettings()">設定を保存</button>
+    </div>
+  </div>
+
+  <!-- パスワード認証モーダル -->
+  <div id="auth-modal" class="modal" onclick="closeAuthModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div style="font-weight:700; font-size:1.1rem;">パスワード入力</div>
+        <button class="modal-close-btn" onclick="closeAuthModal()">✕</button>
+      </div>
+      <input type="password" id="pwd-input" class="input" placeholder="パスワードを入力">
+      <button class="save-btn" onclick="verifyPassword()">認証</button>
+    </div>
+  </div>
+
+  <script>
+    const days = ['日', '月', '火', '水', '木', '金', '土'];
+    const _0x9b = atob('eXVtaXJpbWE=');
+
+    let linksData = JSON.parse(localStorage.getItem('portal_links')) || [
+      { label: 'Link 1', url: '' }, { label: 'Link 2', url: '' },
+      { label: 'Link 3', url: '' }, { label: 'Link 4', url: '' }
+    ];
+    let selectedImageBase64 = localStorage.getItem('portal_bg_img_file') || '';
+    let scheduleData = JSON.parse(localStorage.getItem('portal_schedules')) || {};
+
+    let currentHomeOffset = 0;
+    let selectedEditDateKey = '';
+
+    function getDateObj(offsetDays = 0) {
+      const d = new Date();
+      d.setDate(d.getDate() + offsetDays);
+      return d;
+    }
+
+    function formatDateKey(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function formatDateLabel(dateObj, offset) {
+      const m = dateObj.getMonth() + 1;
+      const d = dateObj.getDate();
+      const w = days[dateObj.getDay()];
+      let tag = '';
+      if (offset === -1) tag = '昨日';
+      else if (offset === 0) tag = '今日';
+      else if (offset === 1) tag = '明日';
+      else if (offset === 7) tag = '来週の今日';
+      return `${m}/${d}(${w}) ${tag}`.trim();
+    }
+
+    function cleanAndMaintainSchedules() {
+      const validKeys = [];
+      for (let i = -1; i <= 6; i++) {
+        const key = formatDateKey(getDateObj(i));
+        validKeys.push(key);
+        if (!scheduleData[key]) {
+          scheduleData[key] = {};
+          for (let p = 1; p <= 7; p++) {
+            scheduleData[key][p] = { sub: '', det: '' };
+          }
+        }
+      }
+      Object.keys(scheduleData).forEach(k => {
+        if (!validKeys.includes(k)) delete scheduleData[k];
+      });
+      localStorage.setItem('portal_schedules', JSON.stringify(scheduleData));
+    }
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('date').textContent = `${now.getMonth()+1}月${now.getDate()}日 (${days[now.getDay()]})`;
+      document.getElementById('time').textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    }
+
+    function initDefaultHomeOffset() {
+      const now = new Date();
+      currentHomeOffset = (now.getHours() >= 18) ? 1 : 0;
+    }
+
+    function renderHomeSchedule() {
+      const targetDate = getDateObj(currentHomeOffset);
+      const key = formatDateKey(targetDate);
+      const dayData = scheduleData[key] || {};
+
+      document.getElementById('schedule-target-label').textContent = formatDateLabel(targetDate, currentHomeOffset);
+
+      for (let p = 1; p <= 7; p++) {
+        const pData = dayData[p] || { sub: '', det: '' };
+        document.getElementById(`sub-${p}`).textContent = pData.sub || '';
+        document.getElementById(`det-${p}`).textContent = pData.det || '';
+      }
+
+      document.getElementById('btn-day-prev').classList.toggle('active-day', currentHomeOffset === -1);
+      document.getElementById('btn-day-today').classList.toggle('active-day', currentHomeOffset === 0);
+      document.getElementById('btn-day-next').classList.toggle('active-day', currentHomeOffset === 1);
+    }
+
+    function switchHomeOffset(offset) {
+      currentHomeOffset = offset;
+      renderHomeSchedule();
+    }
+
+    function getWeatherCondition(code) {
+      if (code === 0) return '☀️ 晴れ';
+      if ([1, 2, 3].includes(code)) return '⛅ 曇り';
+      if ([45, 48].includes(code)) return '🌫️ 霧';
+      if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '☔ 雨';
+      if ([71, 73, 75, 77, 85, 86].includes(code)) return '❄️ 雪';
+      if ([95, 96, 99].includes(code)) return '⚡ 雷雨';
+      return '晴れ';
+    }
+
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=33.5904&longitude=130.4017&current=temperature_2m,weather_code')
+      .then(r => r.json())
+      .then(d => {
+        if (d.current) {
+          const temp = Math.round(d.current.temperature_2m);
+          const cond = getWeatherCondition(d.current.weather_code);
+          document.getElementById('weather').textContent = `福岡 ${cond} ${temp}°C`;
+        }
+      }).catch(() => {});
+
+    /* パスワード認証モーダル制御 */
+    function openAuthModal() {
+      document.getElementById('pwd-input').value = '';
+      document.getElementById('auth-modal').classList.add('active');
+      setTimeout(() => document.getElementById('pwd-input').focus(), 100);
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.remove('active');
+    }
+
+    function verifyPassword() {
+      const input = document.getElementById('pwd-input').value;
+      const customPwd = localStorage.getItem('portal_custom_password');
+
+      if ((customPwd && input === customPwd) || input === _0x9b) {
+        closeAuthModal();
+        showSettings();
+      } else {
+        alert('パスワードが違います');
+      }
+    }
+
+    function showSettings() {
+      document.getElementById('home-view').classList.add('hidden');
+      document.getElementById('settings-view').classList.remove('hidden');
+      
+      document.getElementById('cfg-password').value = '';
+      document.getElementById('cfg-header-text').value = localStorage.getItem('portal_header_text') || '';
+      document.getElementById('cfg-bg-color').value = localStorage.getItem('portal_bg_color') || '#fbfbfd';
+      document.getElementById('cfg-notice').value = localStorage.getItem('portal_notice') || '';
+
+      renderDateSelectBar();
+      renderLinkEditor();
+    }
+
+    function showHome() {
+      document.getElementById('settings-view').classList.add('hidden');
+      document.getElementById('home-view').classList.remove('hidden');
+      renderHomeSchedule();
+    }
+
+    function renderDateSelectBar() {
+      const bar = document.getElementById('date-select-bar');
+      bar.innerHTML = '';
+      
+      const defaultKey = formatDateKey(getDateObj(currentHomeOffset));
+      selectedEditDateKey = selectedEditDateKey || defaultKey;
+
+      for (let i = -1; i <= 6; i++) {
+        const dObj = getDateObj(i);
+        const key = formatDateKey(dObj);
+        const chip = document.createElement('div');
+        chip.className = `date-chip ${key === selectedEditDateKey ? 'selected' : ''}`;
+        chip.textContent = formatDateLabel(dObj, i);
+        chip.onclick = () => {
+          selectedEditDateKey = key;
+          renderDateSelectBar();
+        };
+        bar.appendChild(chip);
+      }
+      renderScheduleEditor();
+    }
+
+    function renderScheduleEditor() {
+      const container = document.getElementById('schedule-editor');
+      container.innerHTML = '';
+      const dayData = scheduleData[selectedEditDateKey] || {};
+
+      for (let p = 1; p <= 7; p++) {
+        const pData = dayData[p] || { sub: '', det: '' };
+        const row = document.createElement('div');
+        row.className = 'period-edit-row';
+        row.innerHTML = `
+          <span class="period-tag">${p}限</span>
+          <input type="text" class="input p-sub" data-p="${p}" value="${pData.sub || ''}" placeholder="教科名" style="flex:1;">
+          <input type="text" class="input p-det" data-p="${p}" value="${pData.det || ''}" placeholder="詳細" style="flex:1.5;">
+        `;
+        container.appendChild(row);
+      }
+    }
+
+    function captureScheduleEditorInputs() {
+      if (!selectedEditDateKey) return;
+      if (!scheduleData[selectedEditDateKey]) scheduleData[selectedEditDateKey] = {};
+
+      const subs = document.querySelectorAll('.p-sub');
+      const dets = document.querySelectorAll('.p-det');
+      subs.forEach(input => {
+        const p = input.getAttribute('data-p');
+        if (!scheduleData[selectedEditDateKey][p]) scheduleData[selectedEditDateKey][p] = {};
+        scheduleData[selectedEditDateKey][p].sub = input.value.trim();
+      });
+      dets.forEach(input => {
+        const p = input.getAttribute('data-p');
+        if (!scheduleData[selectedEditDateKey][p]) scheduleData[selectedEditDateKey][p] = {};
+        scheduleData[selectedEditDateKey][p].det = input.value.trim();
+      });
+    }
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          selectedImageBase64 = evt.target.result;
+          localStorage.setItem('portal_bg_img_file', selectedImageBase64);
+          applyStylesAndText();
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    /* 背景画像をリセットする処理 */
+    function clearBgImage() {
+      selectedImageBase64 = '';
+      localStorage.removeItem('portal_bg_img_file');
+      localStorage.removeItem('portal_bg_url');
+      document.getElementById('cfg-bg-file').value = '';
+      applyStylesAndText();
+    }
+
+    function saveSettings() {
+      captureScheduleEditorInputs();
+
+      const newPwd = document.getElementById('cfg-password').value.trim();
+      if (newPwd) {
+        localStorage.setItem('portal_custom_password', newPwd);
+      }
+
+      const headerText = document.getElementById('cfg-header-text').value.trim();
+      const bgColor = document.getElementById('cfg-bg-color').value;
+      const notice = document.getElementById('cfg-notice').value.trim();
+
+      localStorage.setItem('portal_header_text', headerText);
+      localStorage.setItem('portal_bg_color', bgColor);
+      localStorage.setItem('portal_notice', notice);
+      localStorage.setItem('portal_schedules', JSON.stringify(scheduleData));
+
+      applyStylesAndText();
+
+      const linkItems = document.querySelectorAll('.link-edit-item');
+      linksData = [];
+      linkItems.forEach(item => {
+        const label = item.querySelector('.link-lbl').value.trim();
+        const url = item.querySelector('.link-url').value.trim();
+        if (label || url) linksData.push({ label: label || 'Link', url });
+      });
+      localStorage.setItem('portal_links', JSON.stringify(linksData));
+
+      renderHomeLinks();
+      showHome();
+    }
+
+    function applyStylesAndText() {
+      const headerText = localStorage.getItem('portal_header_text') || '';
+      const bgColor = localStorage.getItem('portal_bg_color') || '#fbfbfd';
+      const notice = localStorage.getItem('portal_notice') || '';
+
+      document.getElementById('header-custom-display').textContent = headerText;
+      document.body.style.backgroundColor = bgColor;
+
+      if (selectedImageBase64) {
+        document.body.style.backgroundImage = `url('${selectedImageBase64}')`;
+      } else {
+        document.body.style.backgroundImage = 'none';
+      }
+
+      document.getElementById('ticker-text').textContent = notice;
+    }
+
+    function renderLinkEditor() {
+      const container = document.getElementById('link-editor-list');
+      container.innerHTML = '';
+      linksData.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'link-edit-item';
+        div.innerHTML = `
+          <input type="text" class="input link-lbl" value="${item.label}" placeholder="表示名" style="flex:1;">
+          <input type="text" class="input link-url" value="${item.url}" placeholder="URL" style="flex:2;">
+          <button class="del-btn" onclick="removeLinkItem(${index})">削除</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function addLinkItem() {
+      linksData.push({ label: '', url: '' });
+      renderLinkEditor();
+    }
+
+    function removeLinkItem(index) {
+      linksData.splice(index, 1);
+      renderLinkEditor();
+    }
+
+    function renderHomeLinks() {
+      const container = document.getElementById('home-links');
+      container.innerHTML = '';
+      linksData.forEach(item => {
+        const btn = document.createElement('div');
+        btn.className = 'compact-link-btn';
+        btn.textContent = item.label;
+        btn.onclick = () => { if (item.url) window.open(item.url, '_blank'); };
+        container.appendChild(btn);
+      });
+    }
+
+    cleanAndMaintainSchedules();
+    initDefaultHomeOffset();
+    updateClock();
+    setInterval(updateClock, 1000);
+    applyStylesAndText();
+    renderHomeSchedule();
+    renderHomeLinks();
+  </script>
+</body>
+</html>
