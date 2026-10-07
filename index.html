@@ -157,6 +157,15 @@
     .nav-btn:active { background: rgba(0,0,0,0.08); }
     .nav-btn.active-day { border-color: var(--text); background: rgba(0,0,0,0.05); }
 
+    /* 提出物・課題UI */
+    .submission-row {
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.03); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03);
+    }
+    .submission-title { font-size: 0.9rem; font-weight: 700; color: var(--text); width: 120px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .submission-date { font-size: 0.73rem; font-weight: 700; color: #ff3b30; background: rgba(255, 59, 48, 0.1); padding: 3px 8px; border-radius: 6px; flex-shrink: 0; white-space: nowrap; }
+    .submission-detail { font-size: 0.78rem; color: var(--sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
     /* 4. 小型LINK */
     .home-links-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .compact-link-btn { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: clamp(8px, 1.2vw, 12px) 4px; font-size: clamp(0.72rem, 1vw, 0.82rem); font-weight: 600; color: var(--text); text-align: center; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -177,7 +186,7 @@
     .period-edit-row { display: flex; gap: 6px; align-items: center; }
     .period-tag { font-size: 0.75rem; font-weight: 700; width: 32px; color: var(--sub); flex-shrink: 0; }
 
-    .link-edit-item { display: flex; gap: 6px; align-items: center; background: rgba(249, 249, 251, 0.8); padding: 8px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 6px; }
+    .edit-item-row { display: flex; gap: 6px; align-items: center; background: rgba(249, 249, 251, 0.8); padding: 8px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 6px; }
     .del-btn { background: #ff3b30; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
     .add-btn { background: #34c759; color: #fff; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
     .save-btn { background: var(--text); color: #fff; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; margin-top: 10px; }
@@ -255,6 +264,19 @@
       </div>
     </div>
 
+    <!-- 📝 提出物・課題カード（時間割とLINKの間に配置） -->
+    <div id="submissions-card" class="card hidden">
+      <div class="schedule-header" style="margin-bottom: 8px;">
+        <div class="schedule-title-group">
+          <span class="schedule-title">📝 提出物・課題</span>
+        </div>
+      </div>
+      <div id="submissions-list-container" class="schedule-list">
+        <!-- JSで提出物リストを自動生成 -->
+      </div>
+    </div>
+
+    <!-- 🔗 小型LINKボタン集 -->
     <div id="home-links" class="home-links-grid"></div>
   </div>
 
@@ -318,6 +340,13 @@
         <div id="schedule-editor" class="schedule-editor-grid"></div>
       </div>
 
+      <!-- 📝 提出物・課題の設定 -->
+      <div class="form-group">
+        <label class="form-label">📝 提出物・課題の管理</label>
+        <div id="submission-editor-list"></div>
+        <button class="add-btn" onclick="addSubmissionItem()">＋ 提出物を追加</button>
+      </div>
+
       <div class="form-group">
         <label class="form-label">LINK設定</label>
         <div id="link-editor-list"></div>
@@ -366,6 +395,7 @@
     };
 
     let linksData = [{ label: 'Link 1', url: '' }, { label: 'Link 2', url: '' }, { label: 'Link 3', url: '' }, { label: 'Link 4', url: '' }];
+    let submissionsData = []; // 📝 提出物・課題データ
     let selectedImageBase64 = '';
     let selectedBannerBase64 = '';
     let scheduleData = {};
@@ -394,6 +424,7 @@
 
             if (config.schedules) { try { scheduleData = JSON.parse(config.schedules); } catch(e){} }
             if (config.links) { try { linksData = JSON.parse(config.links); } catch(e){} }
+            if (config.submissions) { try { submissionsData = JSON.parse(config.submissions); } catch(e){} }
           }
         }
       } catch (err) { console.error('通信エラー:', err); }
@@ -401,6 +432,7 @@
         cleanAndMaintainSchedules();
         applyStylesAndText();
         renderHomeSchedule();
+        renderHomeSubmissions();
         renderHomeLinks();
       }
     }
@@ -420,6 +452,19 @@
       const eventTitle = document.getElementById('cfg-event-title').value.trim();
       const eventDate = document.getElementById('cfg-event-date').value;
 
+      // 提出物データの収集
+      const subItems = document.querySelectorAll('.sub-edit-item');
+      submissionsData = [];
+      subItems.forEach(item => {
+        const title = item.querySelector('.sub-title').value.trim();
+        const date = item.querySelector('.sub-date').value.trim();
+        const detail = item.querySelector('.sub-detail').value.trim();
+        if (title || date || detail) {
+          submissionsData.push({ title: title || '課題', date, detail });
+        }
+      });
+
+      // リンクデータの収集
       const linkItems = document.querySelectorAll('.link-edit-item');
       linksData = [];
       linkItems.forEach(item => {
@@ -437,6 +482,7 @@
         { key: 'event_title', value: eventTitle },
         { key: 'event_date', value: eventDate },
         { key: 'schedules', value: JSON.stringify(scheduleData) },
+        { key: 'submissions', value: JSON.stringify(submissionsData) },
         { key: 'links', value: JSON.stringify(linksData) }
       ];
 
@@ -508,6 +554,30 @@
     }
 
     function switchHomeOffset(offset) { currentHomeOffset = offset; renderHomeSchedule(); }
+
+    // 📝 ホーム画面の提出物表示描画
+    function renderHomeSubmissions() {
+      const card = document.getElementById('submissions-card');
+      const container = document.getElementById('submissions-list-container');
+      container.innerHTML = '';
+
+      if (!submissionsData || submissionsData.length === 0) {
+        card.classList.add('hidden');
+        return;
+      }
+
+      card.classList.remove('hidden');
+      submissionsData.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'submission-row';
+        row.innerHTML = `
+          <div class="submission-title">${item.title || '課題'}</div>
+          ${item.date ? `<div class="submission-date">〆 ${item.date}</div>` : ''}
+          <div class="submission-detail">${item.detail || ''}</div>
+        `;
+        container.appendChild(row);
+      });
+    }
 
     function applyStylesAndText() {
       document.getElementById('header-custom-display').textContent = portalData.headerText || '';
@@ -598,10 +668,10 @@
 
       const validKeys = []; for (let i = 0; i <= 7; i++) validKeys.push(formatDateKey(getDateObj(i)));
       if (!selectedEditDateKey || !validKeys.includes(selectedEditDateKey)) selectedEditDateKey = formatDateKey(getDateObj(currentHomeOffset));
-      renderDateSelectBar(); renderLinkEditor();
+      renderDateSelectBar(); renderSubmissionEditor(); renderLinkEditor();
     }
 
-    function showHome() { document.getElementById('settings-view').classList.add('hidden'); document.getElementById('home-view').classList.remove('hidden'); renderHomeSchedule(); }
+    function showHome() { document.getElementById('settings-view').classList.add('hidden'); document.getElementById('home-view').classList.remove('hidden'); renderHomeSchedule(); renderHomeSubmissions(); }
 
     function renderDateSelectBar() {
       const bar = document.getElementById('date-select-bar'); bar.innerHTML = '';
@@ -634,10 +704,27 @@
       document.querySelectorAll('.p-det').forEach(input => { const p = input.getAttribute('data-p'); if (!scheduleData[selectedEditDateKey][p]) scheduleData[selectedEditDateKey][p] = {}; scheduleData[selectedEditDateKey][p].det = input.value.trim(); });
     }
 
+    // 📝 提出物・課題エディタ
+    function renderSubmissionEditor() {
+      const container = document.getElementById('submission-editor-list'); container.innerHTML = '';
+      submissionsData.forEach((item, index) => {
+        const div = document.createElement('div'); div.className = 'edit-item-row sub-edit-item';
+        div.innerHTML = `
+          <input type="text" class="input sub-title" value="${item.title || ''}" placeholder="課題・教科名" style="flex:1;">
+          <input type="text" class="input sub-date" value="${item.date || ''}" placeholder="期限（例: 10/12）" style="flex:1;">
+          <input type="text" class="input sub-detail" value="${item.detail || ''}" placeholder="詳細・範囲など" style="flex:1.5;">
+          <button class="del-btn" onclick="removeSubmissionItem(${index})">削除</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+    function addSubmissionItem() { submissionsData.push({ title: '', date: '', detail: '' }); renderSubmissionEditor(); }
+    function removeSubmissionItem(index) { submissionsData.splice(index, 1); renderSubmissionEditor(); }
+
     function renderLinkEditor() {
       const container = document.getElementById('link-editor-list'); container.innerHTML = '';
       linksData.forEach((item, index) => {
-        const div = document.createElement('div'); div.className = 'link-edit-item';
+        const div = document.createElement('div'); div.className = 'edit-item-row link-edit-item';
         div.innerHTML = `<input type="text" class="input link-lbl" value="${item.label}" placeholder="表示名" style="flex:1;"><input type="text" class="input link-url" value="${item.url}" placeholder="URL" style="flex:2;"><button class="del-btn" onclick="removeLinkItem(${index})">削除</button>`;
         container.appendChild(div);
       });
