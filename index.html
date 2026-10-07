@@ -407,7 +407,7 @@
         <button class="add-btn" onclick="addLinkItem()">＋ リンクを追加</button>
       </div>
 
-      <button type="button" class="add-btn" onclick="openOmikujiModal()">🎲 おみくじ</button>
+      <button type="button" class="add-btn omikuji-settings-btn" onclick="openOmikujiModal()">🎲 おみくじ</button>
       <button class="save-btn" onclick="saveSettings()">設定を保存して全員に共有</button>
     </div>
   </div>
@@ -449,8 +449,8 @@
       </div>
       <div id="omikuji-admin-list"></div>
       <button type="button" class="add-btn" onclick="addOmikujiItem()">＋ おみくじを追加</button>
-      <div class="form-label">編集後、設定画面下の「設定を保存」で全員に共有されます。</div>
-      <button type="button" class="save-btn" onclick="closeOmikujiModal()">編集を反映</button>
+      <div id="omikuji-save-status" class="form-label" aria-live="polite">おみくじ設定はSupabaseのsettingsに保存されます。</div>
+      <button type="button" class="save-btn" onclick="saveOmikujiSettings()">おみくじ設定を保存</button>
     </div>
   </div>
 
@@ -1249,7 +1249,9 @@
         row.className = 'edit-item-row';
         if (item.id) row.dataset.itemId = item.id;
         const message = document.createElement('input');
+        message.type = 'text';
         message.className = 'input';
+        message.classList.add('omikuji-message');
         message.maxLength = 160;
         message.value = item.message || '';
         message.placeholder = '大吉！〜〜〜';
@@ -1277,7 +1279,7 @@
     function collectOmikujiInputs() {
       const rows = [...document.querySelectorAll('#omikuji-admin-list .edit-item-row')];
       omikujiList = rows.map(row => ({
-        message: row.querySelector('input[type="text"]').value.trim(),
+        message: row.querySelector('.omikuji-message').value.trim(),
         color: row.querySelector('input[type="color"]').value
       }));
     }
@@ -1296,6 +1298,38 @@
       collectOmikujiInputs();
       omikujiList.push({ message: '', color: '#39ff14' });
       renderOmikujiEditor();
+    }
+
+    async function saveOmikujiSettings() {
+      const status = document.getElementById('omikuji-save-status');
+      const saveButton = document.querySelector('#omikuji-modal .save-btn');
+      if (!supabaseClient) {
+        status.textContent = 'Supabaseに接続できません。接続設定を確認してください。';
+        alert(status.textContent);
+        return;
+      }
+
+      collectOmikujiInputs();
+      const items = omikujiList.filter(item => item.message);
+      saveButton.disabled = true;
+      status.textContent = 'Supabaseのsettingsに保存しています...';
+      try {
+        const { error } = await supabaseClient
+          .from('settings')
+          .upsert({ key: 'omikuji_list', value: JSON.stringify(items) }, { onConflict: 'key' });
+        if (error) throw error;
+
+        omikujiList = items;
+        renderTicker();
+        status.textContent = '保存しました。共有サイトのおみくじ設定に反映されます。';
+        document.getElementById('omikuji-modal').classList.remove('active');
+      } catch (error) {
+        console.error('おみくじ設定の保存に失敗しました:', error);
+        status.textContent = `保存に失敗しました: ${error.message || error}`;
+        alert(status.textContent);
+      } finally {
+        saveButton.disabled = false;
+      }
     }
 
 
