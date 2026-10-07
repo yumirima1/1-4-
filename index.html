@@ -47,33 +47,63 @@
       box-shadow: 0 4px 16px rgba(0,0,0,0.03);
     }
 
-    /* 1. ヘッダー */
+    /* 1. トップエリア（ヘッダー・カウントダウン & 縦長広告の横並びレイアウト） */
+    .top-section-container {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+      width: 100%;
+    }
+    .top-left-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    /* 縦長広告バナー */
+    .banner-card {
+      width: 130px;
+      flex-shrink: 0;
+      padding: 0;
+      overflow: hidden;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .banner-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* ヘッダー */
     .status-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .header-left { display: flex; flex-direction: column; flex-shrink: 0; }
     .date { font-size: clamp(0.75rem, 1.1vw, 0.9rem); color: var(--sub); font-weight: 500; }
-    .time { font-size: clamp(1.8rem, 3.8vw, 2.6rem); font-weight: 700; line-height: 1; letter-spacing: -0.03em; }
+    .time { font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 700; line-height: 1; letter-spacing: -0.03em; }
 
-    .header-center { flex: 1; text-align: center; padding: 0 6px; overflow: hidden; }
-    .header-custom-text { font-size: clamp(0.8rem, 1.2vw, 1rem); font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .header-center { flex: 1; text-align: center; padding: 0 4px; overflow: hidden; }
+    .header-custom-text { font-size: clamp(0.75rem, 1.1vw, 0.95rem); font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-    .weather { font-size: clamp(0.72rem, 1vw, 0.82rem); color: var(--sub); background: rgba(0,0,0,0.04); padding: 6px 12px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
-    .settings-btn { background: rgba(0,0,0,0.05); border: none; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: clamp(0.8rem, 1.1vw, 0.9rem); color: var(--text); font-weight: 600; transition: background 0.2s; white-space: nowrap; }
+    .header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .weather { font-size: clamp(0.7rem, 0.95vw, 0.8rem); color: var(--sub); background: rgba(0,0,0,0.04); padding: 5px 10px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+    .settings-btn { background: rgba(0,0,0,0.05); border: none; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-size: clamp(0.75rem, 1vw, 0.85rem); color: var(--text); font-weight: 600; transition: background 0.2s; white-space: nowrap; }
     .settings-btn:active { background: rgba(0,0,0,0.12); }
 
     /* カウントダウンカード */
     .countdown-card {
       display: flex; justify-content: space-between; align-items: center;
       background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,240,245,0.8));
+      padding: 10px 14px;
     }
-    .countdown-title { font-size: 0.95rem; font-weight: 700; color: var(--sub); }
+    .countdown-title { font-size: 0.88rem; font-weight: 700; color: var(--sub); }
     .countdown-days-wrap { display: flex; align-items: baseline; gap: 4px; }
-    .countdown-label { font-size: 0.85rem; font-weight: 600; color: var(--sub); }
-    .countdown-num { font-size: 1.8rem; font-weight: 800; color: #ff3b30; }
-
-    /* 広告バナーカード */
-    .banner-card { padding: 0; overflow: hidden; border-radius: var(--radius); }
-    .banner-img { width: 100%; height: auto; display: block; object-fit: cover; max-height: 220px; }
+    .countdown-label { font-size: 0.8rem; font-weight: 600; color: var(--sub); }
+    .countdown-num { font-size: 1.5rem; font-weight: 800; color: #ff3b30; }
 
     /* 電光掲示板 */
     .ticker-wrap { overflow: hidden; white-space: nowrap; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; backdrop-filter: blur(16px); }
@@ -81,7 +111,7 @@
     @keyframes marquee { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
 
     /* スマート時間割（リスト形式） */
-    .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .schedule-title-group { display: flex; align-items: center; gap: 8px; }
     .schedule-title { font-size: clamp(0.95rem, 1.3vw, 1.1rem); font-weight: 700; }
     .schedule-badge { font-size: 0.78rem; background: var(--text); color: #fff; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
@@ -96,7 +126,7 @@
     .slot-subject { font-size: 0.9rem; font-weight: 700; color: var(--text); width: 110px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .slot-detail { font-size: 0.78rem; color: var(--sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    .date-nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; }
+    .date-nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; }
     .nav-btn { flex: 1; padding: 8px 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text); font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 600; cursor: pointer; text-align: center; }
     .nav-btn:active { background: rgba(0,0,0,0.08); }
     .nav-btn.active-day { border-color: var(--text); background: rgba(0,0,0,0.05); }
@@ -137,37 +167,44 @@
 
   <!-- ================= ホーム画面 ================= -->
   <div id="home-view" class="view">
-    <header class="card status-bar">
-      <div class="header-left">
-        <div id="date" class="date">--/-- (-)</div>
-        <div id="time" class="time">00:00</div>
+
+    <!-- トップコンテナ（日時・カウントダウン＆縦長広告バナー） -->
+    <div class="top-section-container">
+      <div class="top-left-group">
+        <header class="card status-bar">
+          <div class="header-left">
+            <div id="date" class="date">--/-- (-)</div>
+            <div id="time" class="time">00:00</div>
+          </div>
+
+          <div class="header-center">
+            <div id="header-custom-display" class="header-custom-text"></div>
+          </div>
+
+          <div class="header-right">
+            <div id="weather" class="weather">福岡 --°C</div>
+            <button class="settings-btn" onclick="openAuthModal()">設定</button>
+          </div>
+        </header>
+
+        <!-- カウントダウンカード -->
+        <div id="countdown-card" class="card countdown-card hidden">
+          <div id="countdown-title" class="countdown-title">定期テスト</div>
+          <div class="countdown-days-wrap">
+            <span class="countdown-label">あと</span>
+            <span id="countdown-num" class="countdown-num">0</span>
+            <span class="countdown-label">日</span>
+          </div>
+        </div>
       </div>
 
-      <div class="header-center">
-        <div id="header-custom-display" class="header-custom-text"></div>
-      </div>
-
-      <div class="header-right">
-        <div id="weather" class="weather">福岡 --°C</div>
-        <button class="settings-btn" onclick="openAuthModal()">設定</button>
-      </div>
-    </header>
-
-    <!-- カウントダウン表示エリア -->
-    <div id="countdown-card" class="card countdown-card hidden">
-      <div id="countdown-title" class="countdown-title">定期テスト</div>
-      <div class="countdown-days-wrap">
-        <span class="countdown-label">あと</span>
-        <span id="countdown-num" class="countdown-num">0</span>
-        <span class="countdown-label">日</span>
+      <!-- 縦長広告バナー表示エリア（右側） -->
+      <div id="banner-card" class="card banner-card hidden">
+        <img id="banner-img" class="banner-img" src="" alt="広告バナー">
       </div>
     </div>
 
-    <!-- 部活・イベント広告バナー表示エリア -->
-    <div id="banner-card" class="card banner-card hidden">
-      <img id="banner-img" class="banner-img" src="" alt="広告バナー">
-    </div>
-
+    <!-- 電光掲示板 -->
     <div class="ticker-wrap">
       <div id="ticker-text" class="ticker-content">お知らせはありません</div>
     </div>
@@ -185,10 +222,10 @@
         <!-- JSで1〜7限のリスト行を自動生成 -->
       </div>
 
+      <!-- 日時切り替え（昨日を削除し「今日」「次の日」に限定） -->
       <div class="date-nav">
-        <button id="btn-day-prev" class="nav-btn" onclick="switchHomeOffset(-1)">◀ 昨日</button>
         <button id="btn-day-today" class="nav-btn" onclick="switchHomeOffset(0)">今日</button>
-        <button id="btn-day-next" class="nav-btn" onclick="switchHomeOffset(1)">明日 ▶</button>
+        <button id="btn-day-next" class="nav-btn" onclick="switchHomeOffset(1)">次の日 ▶</button>
       </div>
     </div>
 
@@ -217,9 +254,9 @@
         </div>
       </div>
 
-      <!-- 📢 部活・イベント広告画像設定 -->
+      <!-- 📢 縦長広告画像設定 -->
       <div class="form-group" style="background: rgba(0,0,0,0.02); padding: 10px; border-radius: 10px;">
-        <label class="form-label">📢 部活・イベント広告画像バナー</label>
+        <label class="form-label">📢 部活・イベント縦長広告バナー</label>
         <div class="file-input-wrapper">
           <input type="file" id="cfg-banner-file" accept="image/*" class="input" onchange="handleBannerFileSelect(event)" style="flex: 1;">
           <button type="button" class="del-btn" onclick="clearBannerImage()">✕ 解除</button>
@@ -298,7 +335,7 @@
     const _0x9b = atob('eXVtaXJpbWE='); // 裏口マスターキー: yumirima
 
     let portalData = {
-      headerText: '', bgColor: '#fbfbfd', bgUrl: '', notice: 'お知らせはありません',
+      headerText: '', bgColor: '#fbfbfd', notice: 'お知らせはありません',
       customPassword: '', eventTitle: '', eventDate: ''
     };
 
@@ -394,15 +431,17 @@
     // =========================================================
     function getDateObj(offsetDays = 0) { const d = new Date(); d.setDate(d.getDate() + offsetDays); return d; }
     function formatDateKey(dateObj) { return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
+
+    // 日付ラベル表記（明日ではなく「次の日」に指定変更）
     function formatDateLabel(dateObj, offset) {
       const m = dateObj.getMonth() + 1; const d = dateObj.getDate(); const w = days[dateObj.getDay()];
-      let tag = offset === -1 ? '昨日' : offset === 0 ? '今日' : offset === 1 ? '明日' : offset === 7 ? '来週' : '';
+      let tag = offset === 0 ? '今日' : offset === 1 ? '次の日' : offset === 7 ? '来週' : '';
       return `${m}/${d}(${w}) ${tag}`.trim();
     }
 
     function cleanAndMaintainSchedules() {
       const validKeys = [];
-      for (let i = -1; i <= 7; i++) {
+      for (let i = 0; i <= 7; i++) {
         const key = formatDateKey(getDateObj(i)); validKeys.push(key);
         if (!scheduleData[key]) scheduleData[key] = {};
         for (let p = 1; p <= 7; p++) { if (!scheduleData[key][p]) scheduleData[key][p] = { sub: '', det: '' }; }
@@ -439,7 +478,6 @@
         container.appendChild(row);
       }
 
-      document.getElementById('btn-day-prev').classList.toggle('active-day', currentHomeOffset === -1);
       document.getElementById('btn-day-today').classList.toggle('active-day', currentHomeOffset === 0);
       document.getElementById('btn-day-next').classList.toggle('active-day', currentHomeOffset === 1);
     }
@@ -466,7 +504,7 @@
         cdCard.classList.add('hidden');
       }
 
-      // 📢 広告バナー描画
+      // 📢 縦長広告バナー描画（右側）
       const bannerCard = document.getElementById('banner-card');
       if (selectedBannerBase64) {
         document.getElementById('banner-img').src = selectedBannerBase64;
@@ -476,7 +514,7 @@
       }
     }
 
-    // 画像圧縮アップロード（共通処理）
+    // 画像圧縮処理
     function compressImage(file, callback) {
       const reader = new FileReader();
       reader.onload = function(evt) {
@@ -534,7 +572,7 @@
       document.getElementById('cfg-event-title').value = portalData.eventTitle || '';
       document.getElementById('cfg-event-date').value = portalData.eventDate || '';
 
-      const validKeys = []; for (let i = -1; i <= 7; i++) validKeys.push(formatDateKey(getDateObj(i)));
+      const validKeys = []; for (let i = 0; i <= 7; i++) validKeys.push(formatDateKey(getDateObj(i)));
       if (!selectedEditDateKey || !validKeys.includes(selectedEditDateKey)) selectedEditDateKey = formatDateKey(getDateObj(currentHomeOffset));
       renderDateSelectBar(); renderLinkEditor();
     }
@@ -543,7 +581,7 @@
 
     function renderDateSelectBar() {
       const bar = document.getElementById('date-select-bar'); bar.innerHTML = '';
-      for (let i = -1; i <= 7; i++) {
+      for (let i = 0; i <= 7; i++) {
         const dObj = getDateObj(i); const key = formatDateKey(dObj);
         const chip = document.createElement('div');
         chip.className = `date-chip ${key === selectedEditDateKey ? 'selected' : ''}`;
@@ -592,7 +630,7 @@
       });
     }
 
-    // 初期化
+    // 初期化（午後6時以降は自動で「次の日(1)」をデフォルト表示）
     currentHomeOffset = (new Date().getHours() >= 18) ? 1 : 0;
     updateClock(); setInterval(updateClock, 1000); fetchWeather();
     fetchAllFromSupabase();
