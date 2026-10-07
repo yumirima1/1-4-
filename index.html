@@ -16,6 +16,8 @@
       --sub: #6e6e73;
       --border: rgba(0, 0, 0, 0.08);
       --radius: 16px;
+      --accent-red: #ff3b30;
+      --accent-blue: #007aff;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -129,7 +131,7 @@
     .countdown-title { font-size: 0.82rem; font-weight: 700; color: var(--sub); }
     .countdown-days-wrap { display: flex; align-items: baseline; gap: 3px; }
     .countdown-label { font-size: 0.75rem; font-weight: 600; color: var(--sub); }
-    .countdown-num { font-size: 1.35rem; font-weight: 800; color: #ff3b30; }
+    .countdown-num { font-size: 1.35rem; font-weight: 800; color: var(--accent-red); }
 
     /* 電光掲示板 */
     .ticker-wrap { overflow: hidden; white-space: nowrap; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; backdrop-filter: blur(16px); }
@@ -137,10 +139,11 @@
     @keyframes marquee { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
 
     /* スマート時間割（リスト形式） */
-    .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .schedule-title-group { display: flex; align-items: center; gap: 8px; }
+    .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+    .schedule-title-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .schedule-title { font-size: clamp(0.95rem, 1.3vw, 1.1rem); font-weight: 700; }
     .schedule-badge { font-size: 0.78rem; background: var(--text); color: #fff; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
+    .schedule-tag-badge { font-size: 0.78rem; background: rgba(0, 122, 255, 0.12); color: var(--accent-blue); padding: 3px 10px; border-radius: 12px; font-weight: 700; border: 1px solid rgba(0, 122, 255, 0.2); }
 
     .schedule-list { display: flex; flex-direction: column; gap: 6px; }
     .slot-row {
@@ -156,6 +159,7 @@
     .nav-btn { flex: 1; padding: 8px 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text); font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 600; cursor: pointer; text-align: center; }
     .nav-btn:active { background: rgba(0,0,0,0.08); }
     .nav-btn.active-day { border-color: var(--text); background: rgba(0,0,0,0.05); }
+    .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
     /* 提出物・課題UI */
     .submission-row {
@@ -163,7 +167,7 @@
       background: rgba(0, 0, 0, 0.03); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03);
     }
     .submission-title { font-size: 0.9rem; font-weight: 700; color: var(--text); width: 120px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .submission-date { font-size: 0.73rem; font-weight: 700; color: #ff3b30; background: rgba(255, 59, 48, 0.1); padding: 3px 8px; border-radius: 6px; flex-shrink: 0; white-space: nowrap; }
+    .submission-date { font-size: 0.73rem; font-weight: 700; color: var(--accent-red); background: rgba(255, 59, 48, 0.1); padding: 3px 8px; border-radius: 6px; flex-shrink: 0; white-space: nowrap; }
     .submission-detail { font-size: 0.78rem; color: var(--sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* 4. 小型LINK */
@@ -182,20 +186,30 @@
     .date-chip { flex: 0 0 auto; padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border); font-size: 0.78rem; font-weight: 600; background: #fff; cursor: pointer; color: var(--sub); }
     .date-chip.selected { background: var(--text); color: #fff; border-color: var(--text); }
 
+    /* 設定画面内のタグ選択バー */
+    .tag-select-container { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 10px; }
+    .tag-display-btn { background: var(--text); color: #fff; border: none; padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+
     .schedule-editor-grid { display: flex; flex-direction: column; gap: 8px; }
     .period-edit-row { display: flex; gap: 6px; align-items: center; }
     .period-tag { font-size: 0.75rem; font-weight: 700; width: 32px; color: var(--sub); flex-shrink: 0; }
 
     .edit-item-row { display: flex; gap: 6px; align-items: center; background: rgba(249, 249, 251, 0.8); padding: 8px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 6px; }
-    .del-btn { background: #ff3b30; color: #fff; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+    .del-btn { background: var(--accent-red); color: #fff; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
     .add-btn { background: #34c759; color: #fff; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
     .save-btn { background: var(--text); color: #fff; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; margin-top: 10px; }
 
+    /* モーダル */
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 1000; }
     .modal.active { opacity: 1; pointer-events: auto; }
     .modal-box { background: var(--card); width: 90%; max-width: 380px; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; }
     .modal-close-btn { background: rgba(0,0,0,0.06); border: none; font-size: 1.1rem; width: 30px; height: 30px; border-radius: 15px; cursor: pointer; color: var(--sub); font-weight: bold; display: flex; align-items: center; justify-content: center; }
+
+    /* タグ一覧用チップ群 */
+    .tag-list-chips { display: flex; flex-wrap: wrap; gap: 8px; max-height: 180px; overflow-y: auto; padding: 4px; }
+    .tag-chip-item { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: #fff; font-size: 0.85rem; font-weight: 600; color: var(--text); cursor: pointer; }
+    .tag-chip-item.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
   </style>
 </head>
 <body>
@@ -249,7 +263,9 @@
       <div class="schedule-header">
         <div class="schedule-title-group">
           <span class="schedule-title">時間割</span>
+          <span id="schedule-tag-label-head" class="schedule-tag-badge hidden">#休み</span>
           <span id="schedule-target-label" class="schedule-badge">--</span>
+          <span id="schedule-tag-label-date" class="schedule-tag-badge hidden">#休み</span>
         </div>
       </div>
       
@@ -257,10 +273,10 @@
         <!-- JSで1〜7限のリスト行を自動生成 -->
       </div>
 
-      <!-- 日時切り替え（「今日」「次の日」） -->
+      <!-- 日時切り替え（「◀ 前の日」「次の日 ▶」） -->
       <div class="date-nav">
-        <button id="btn-day-today" class="nav-btn" onclick="switchHomeOffset(0)">今日</button>
-        <button id="btn-day-next" class="nav-btn" onclick="switchHomeOffset(1)">次の日 ▶</button>
+        <button id="btn-day-prev" class="nav-btn" onclick="prevHomeOffset()">今日</button>
+        <button id="btn-day-next" class="nav-btn" onclick="nextHomeOffset()">次の日 ▶</button>
       </div>
     </div>
 
@@ -334,9 +350,17 @@
         <input type="text" id="cfg-notice" class="input" placeholder="連絡事項を入力">
       </div>
 
+      <!-- 時間割とタグの管理（8日分） -->
       <div class="form-group">
         <label class="form-label">時間割の管理（8日分）</label>
         <div id="date-select-bar" class="date-select-bar"></div>
+        
+        <!-- 🏷️ タグ選択エリア -->
+        <div class="tag-select-container">
+          <div style="font-size:0.85rem; font-weight:600; color:var(--sub);" id="current-tag-text">タグ: 設定なし</div>
+          <button type="button" class="tag-display-btn" onclick="openTagModal()">🏷️ タグを選択</button>
+        </div>
+
         <div id="schedule-editor" class="schedule-editor-grid"></div>
       </div>
 
@@ -369,6 +393,25 @@
     </div>
   </div>
 
+  <!-- 🏷️ タグ選択・管理モーダル -->
+  <div id="tag-modal" class="modal" onclick="closeTagModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div style="font-weight:700; font-size:1.1rem;">🏷️ タグ一覧・選択</div>
+        <button class="modal-close-btn" onclick="closeTagModal()">✕</button>
+      </div>
+      
+      <div id="tag-list-chips" class="tag-list-chips">
+        <!-- JSで動的生成 -->
+      </div>
+
+      <div style="display:flex; gap:6px; margin-top:8px;">
+        <input type="text" id="new-tag-input" class="input" placeholder="新しいタグ名（例: 行事）" style="flex:1;">
+        <button class="add-btn" style="white-space:nowrap; padding:8px 12px;" onclick="addNewTag()">追加</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // =========================================================
     // 🔑 1. Supabase接続設定
@@ -395,7 +438,8 @@
     };
 
     let linksData = [{ label: 'Link 1', url: '' }, { label: 'Link 2', url: '' }, { label: 'Link 3', url: '' }, { label: 'Link 4', url: '' }];
-    let submissionsData = []; // 📝 提出物・課題データ
+    let submissionsData = []; 
+    let customTags = ['休み', '定期テスト']; // 初期タグリスト
     let selectedImageBase64 = '';
     let selectedBannerBase64 = '';
     let scheduleData = {};
@@ -425,6 +469,7 @@
             if (config.schedules) { try { scheduleData = JSON.parse(config.schedules); } catch(e){} }
             if (config.links) { try { linksData = JSON.parse(config.links); } catch(e){} }
             if (config.submissions) { try { submissionsData = JSON.parse(config.submissions); } catch(e){} }
+            if (config.custom_tags) { try { customTags = JSON.parse(config.custom_tags); } catch(e){} }
           }
         }
       } catch (err) { console.error('通信エラー:', err); }
@@ -483,7 +528,8 @@
         { key: 'event_date', value: eventDate },
         { key: 'schedules', value: JSON.stringify(scheduleData) },
         { key: 'submissions', value: JSON.stringify(submissionsData) },
-        { key: 'links', value: JSON.stringify(linksData) }
+        { key: 'links', value: JSON.stringify(linksData) },
+        { key: 'custom_tags', value: JSON.stringify(customTags) }
       ];
 
       if (newPwd) updates.push({ key: 'custom_password', value: newPwd });
@@ -514,7 +560,7 @@
       const validKeys = [];
       for (let i = 0; i <= 7; i++) {
         const key = formatDateKey(getDateObj(i)); validKeys.push(key);
-        if (!scheduleData[key]) scheduleData[key] = {};
+        if (!scheduleData[key]) scheduleData[key] = { tag: '' };
         for (let p = 1; p <= 7; p++) { if (!scheduleData[key][p]) scheduleData[key][p] = { sub: '', det: '' }; }
       }
       Object.keys(scheduleData).forEach(k => { if (!validKeys.includes(k)) delete scheduleData[k]; });
@@ -530,8 +576,22 @@
       const targetDate = getDateObj(currentHomeOffset);
       const key = formatDateKey(targetDate);
       const dayData = scheduleData[key] || {};
+      const currentTag = dayData.tag || '';
 
       document.getElementById('schedule-target-label').textContent = formatDateLabel(targetDate, currentHomeOffset);
+
+      // タグ表示の更新
+      const tagLabelHead = document.getElementById('schedule-tag-label-head');
+      const tagLabelDate = document.getElementById('schedule-tag-label-date');
+      if (currentTag) {
+        tagLabelHead.textContent = `#${currentTag}`;
+        tagLabelDate.textContent = `#${currentTag}`;
+        tagLabelHead.classList.remove('hidden');
+        tagLabelDate.classList.remove('hidden');
+      } else {
+        tagLabelHead.classList.add('hidden');
+        tagLabelDate.classList.add('hidden');
+      }
 
       const container = document.getElementById('schedule-list-container');
       container.innerHTML = '';
@@ -549,11 +609,35 @@
         container.appendChild(row);
       }
 
-      document.getElementById('btn-day-today').classList.toggle('active-day', currentHomeOffset === 0);
-      document.getElementById('btn-day-next').classList.toggle('active-day', currentHomeOffset === 1);
+      // ◀ 前の日 / 次の日 ▶ ボタン状態制御
+      const btnPrev = document.getElementById('btn-day-prev');
+      const btnNext = document.getElementById('btn-day-next');
+
+      if (currentHomeOffset === 0) {
+        btnPrev.textContent = '今日';
+        btnPrev.classList.add('active-day');
+      } else {
+        btnPrev.textContent = '◀ 前の日';
+        btnPrev.classList.remove('active-day');
+      }
+
+      btnNext.classList.toggle('active-day', currentHomeOffset > 0);
+      btnNext.disabled = currentHomeOffset >= 7;
     }
 
-    function switchHomeOffset(offset) { currentHomeOffset = offset; renderHomeSchedule(); }
+    function prevHomeOffset() {
+      if (currentHomeOffset > 0) {
+        currentHomeOffset--;
+        renderHomeSchedule();
+      }
+    }
+
+    function nextHomeOffset() {
+      if (currentHomeOffset < 7) {
+        currentHomeOffset++;
+        renderHomeSchedule();
+      }
+    }
 
     // 📝 ホーム画面の提出物表示描画
     function renderHomeSubmissions() {
@@ -689,6 +773,11 @@
     function renderScheduleEditor() {
       const container = document.getElementById('schedule-editor'); container.innerHTML = '';
       const dayData = scheduleData[selectedEditDateKey] || {};
+
+      // 設定中タグ表示の更新
+      const curTag = dayData.tag || '';
+      document.getElementById('current-tag-text').textContent = curTag ? `タグ: #${curTag}` : 'タグ: 設定なし';
+
       for (let p = 1; p <= 7; p++) {
         const pData = dayData[p] || { sub: '', det: '' };
         const row = document.createElement('div'); row.className = 'period-edit-row';
@@ -702,6 +791,50 @@
       if (!scheduleData[selectedEditDateKey]) scheduleData[selectedEditDateKey] = {};
       document.querySelectorAll('.p-sub').forEach(input => { const p = input.getAttribute('data-p'); if (!scheduleData[selectedEditDateKey][p]) scheduleData[selectedEditDateKey][p] = {}; scheduleData[selectedEditDateKey][p].sub = input.value.trim(); });
       document.querySelectorAll('.p-det').forEach(input => { const p = input.getAttribute('data-p'); if (!scheduleData[selectedEditDateKey][p]) scheduleData[selectedEditDateKey][p] = {}; scheduleData[selectedEditDateKey][p].det = input.value.trim(); });
+    }
+
+    // 🏷️ タグ管理モーダル処理
+    function openTagModal() {
+      renderTagChips();
+      document.getElementById('tag-modal').classList.add('active');
+    }
+    function closeTagModal() { document.getElementById('tag-modal').classList.remove('active'); }
+
+    function renderTagChips() {
+      const container = document.getElementById('tag-list-chips'); container.innerHTML = '';
+      const currentTag = (scheduleData[selectedEditDateKey] && scheduleData[selectedEditDateKey].tag) || '';
+
+      // 「なし（解除）」オプション
+      const noneChip = document.createElement('div');
+      noneChip.className = `tag-chip-item ${!currentTag ? 'active' : ''}`;
+      noneChip.textContent = '🚫 設定なし';
+      noneChip.onclick = () => selectTag('');
+      container.appendChild(noneChip);
+
+      customTags.forEach(tag => {
+        const chip = document.createElement('div');
+        chip.className = `tag-chip-item ${currentTag === tag ? 'active' : ''}`;
+        chip.textContent = `#${tag}`;
+        chip.onclick = () => selectTag(tag);
+        container.appendChild(chip);
+      });
+    }
+
+    function selectTag(tag) {
+      if (!scheduleData[selectedEditDateKey]) scheduleData[selectedEditDateKey] = {};
+      scheduleData[selectedEditDateKey].tag = tag;
+      renderScheduleEditor();
+      closeTagModal();
+    }
+
+    function addNewTag() {
+      const input = document.getElementById('new-tag-input');
+      const val = input.value.trim().replace(/^#/, '');
+      if (val) {
+        if (!customTags.includes(val)) customTags.push(val);
+        selectTag(val);
+        input.value = '';
+      }
     }
 
     // 📝 提出物・課題エディタ
