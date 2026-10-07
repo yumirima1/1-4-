@@ -314,18 +314,19 @@
     // 🔑 1. Supabase接続設定
     // =========================================================
     const SUPABASE_URL = "https://kvlruwtidwvopfsphnqc.supabase.co";
-    
-    // ★★★ ここにご自身の `anon` キー（公開鍵）を貼り付けてください ★★★
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2bHJ1d3RpZHd2b3Bmc3BobnFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzMjkxNzUsImV4cCI6MjEwNjkwNTE3NX0.Iqc7ezCNKaU68UmgBOEsETdQjZHgbhKXOx6mK0utvBk";
 
-    // Supabaseクライアントの作成
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // 安全にSupabaseクライアントを作成
+    let supabase = null;
+    if (window.supabase && typeof window.supabase.createClient === 'function') {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
 
     // =========================================================
     // 📦 2. アプリ全体の変数
     // =========================================================
     const days = ['日', '月', '火', '水', '木', '金', '土'];
-    const _0x9b = atob('eXVtaXJpbWE='); // デフォルトパスワード: yumirima
+    const _0x9b = atob('eXVtaXJpbWE='); // 裏口マスターキー: yumirima
 
     let portalData = {
       headerText: '',
@@ -349,6 +350,7 @@
     // ☁️ 3. Supabase からデータを取得・読み込み
     // =========================================================
     async function fetchAllFromSupabase() {
+      if (!supabase) return;
       try {
         const { data, error } = await supabase.from('settings').select('*');
         if (error) {
@@ -363,7 +365,7 @@
           portalData.headerText = config.header_text || '';
           portalData.bgColor = config.bg_color || '#fbfbfd';
           portalData.bgUrl = config.bg_url || '';
-          portalData.notice = config.notice || '';
+          portalData.notice = config.notice || 'お知らせはありません';
           portalData.customPassword = config.custom_password || '';
           selectedImageBase64 = config.bg_img_file || '';
 
@@ -388,6 +390,11 @@
     // ☁️ 4. Supabase へデータを保存・上書き
     // =========================================================
     async function saveSettings() {
+      if (!supabase) {
+        alert("❌ Supabaseが初期化されていないため保存できません。");
+        return;
+      }
+
       captureScheduleEditorInputs();
 
       const newPwd = document.getElementById('cfg-password').value.trim();
@@ -405,7 +412,6 @@
         if (label || url) linksData.push({ label: label || 'Link', url });
       });
 
-      // アップロードする配列
       const updates = [
         { key: 'header_text', value: headerText },
         { key: 'bg_color', value: bgColor },
@@ -420,14 +426,13 @@
         updates.push({ key: 'custom_password', value: newPwd });
       }
 
-      // Supabaseに一括保存（upsert）
       const { error } = await supabase.from('settings').upsert(updates, { onConflict: 'key' });
 
       if (error) {
         alert("❌ 保存に失敗しました: " + error.message);
       } else {
         alert("☁️ Supabaseに保存しました！全員に即座に共有されます。");
-        await fetchAllFromSupabase(); // 全員用に最新データを再取得
+        await fetchAllFromSupabase();
         showHome();
       }
     }
@@ -462,16 +467,12 @@
 
     function cleanAndMaintainSchedules() {
       const validKeys = [];
-      for (let i = -1; i <= 6; i++) {
+      for (let i = -1; i <= 7; i++) {
         const key = formatDateKey(getDateObj(i));
         validKeys.push(key);
-        if (!scheduleData[key]) {
-          scheduleData[key] = {};
-        }
+        if (!scheduleData[key]) scheduleData[key] = {};
         for (let p = 1; p <= 7; p++) {
-          if (!scheduleData[key][p]) {
-            scheduleData[key][p] = { sub: '', det: '' };
-          }
+          if (!scheduleData[key][p]) scheduleData[key][p] = { sub: '', det: '' };
         }
       }
       Object.keys(scheduleData).forEach(k => {
@@ -545,6 +546,7 @@
       document.getElementById('auth-modal').classList.remove('active');
     }
 
+    // 🔒 パスワード検証（yumirima を裏口キーとして有効化）
     function verifyPassword() {
       const input = document.getElementById('pwd-input').value;
 
@@ -567,9 +569,8 @@
       if (bgUrlInput) bgUrlInput.value = portalData.bgUrl || '';
       document.getElementById('cfg-notice').value = portalData.notice || '';
 
-      // 現在選択中の日付キーが有効範囲になければ本日のキーに初期化
       const validKeys = [];
-      for (let i = -1; i <= 6; i++) validKeys.push(formatDateKey(getDateObj(i)));
+      for (let i = -1; i <= 7; i++) validKeys.push(formatDateKey(getDateObj(i)));
       if (!selectedEditDateKey || !validKeys.includes(selectedEditDateKey)) {
         selectedEditDateKey = formatDateKey(getDateObj(currentHomeOffset));
       }
@@ -588,7 +589,7 @@
       const bar = document.getElementById('date-select-bar');
       bar.innerHTML = '';
 
-      for (let i = -1; i <= 6; i++) {
+      for (let i = -1; i <= 7; i++) {
         const dObj = getDateObj(i);
         const key = formatDateKey(dObj);
         const chip = document.createElement('div');
@@ -640,7 +641,6 @@
       });
     }
 
-    // 🖼️ ファイルアップロード（高画質画像を自動リサイズ・JPEG圧縮して保存容量エラーを回避）
     function handleFileSelect(e) {
       const file = e.target.files[0];
       if (file) {
@@ -649,7 +649,7 @@
           const img = new Image();
           img.onload = function() {
             const canvas = document.createElement('canvas');
-            const maxDimension = 1024; // 最大幅/高さ
+            const maxDimension = 1024;
             let width = img.width;
             let height = img.height;
 
@@ -666,10 +666,8 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
 
-            // リサイズ後、品質0.7のJPEGに圧縮
             selectedImageBase64 = canvas.toDataURL('image/jpeg', 0.7);
             
-            // URL入力欄をクリア
             const bgUrlInput = document.getElementById('cfg-bg-url');
             if (bgUrlInput) bgUrlInput.value = '';
             portalData.bgUrl = '';
@@ -683,7 +681,6 @@
     }
 
     function handleUrlInput() {
-      // URLが入力されたらアップロードした画像をクリア
       selectedImageBase64 = '';
       const bgFileInput = document.getElementById('cfg-bg-file');
       if (bgFileInput) bgFileInput.value = '';
@@ -749,7 +746,15 @@
         const btn = document.createElement('div');
         btn.className = 'compact-link-btn';
         btn.textContent = item.label;
-        btn.onclick = () => { if (item.url) window.open(item.url, '_blank'); };
+        btn.onclick = () => {
+          if (item.url) {
+            let targetUrl = item.url.trim();
+            if (!/^https?:\/\//i.test(targetUrl)) {
+              targetUrl = 'https://' + targetUrl;
+            }
+            window.open(targetUrl, '_blank');
+          }
+        };
         container.appendChild(btn);
       });
     }
