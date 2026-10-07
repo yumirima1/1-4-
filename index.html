@@ -96,8 +96,8 @@
 
 
     /* カウントダウン（インスタ風） */
-    .insta-countdown-container { position: relative; overflow: hidden; border-radius: var(--radius); }
-    .insta-slide-wrap { display: flex; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); width: 100%; }
+    .insta-countdown-container { position: relative; overflow: hidden; border-radius: var(--radius); touch-action: pan-y; }
+    .insta-slide-wrap { display: flex; transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1); width: 100%; will-change: transform; }
     .insta-slide-item { flex: 0 0 100%; min-width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 4px 2px; }
     .countdown-title { font-size: 0.85rem; font-weight: 700; color: var(--sub); }
     .countdown-days-wrap { display: flex; align-items: baseline; gap: 3px; }
@@ -136,7 +136,7 @@
 
 
     .schedule-list { display: flex; flex-direction: column; gap: 6px; }
-    .schedule-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; touch-action: pan-y; }
+    .schedule-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; touch-action: pan-x pan-y; }
     .schedule-track::-webkit-scrollbar { display: none; }
     .schedule-day-slide { flex: 0 0 100%; min-width: 100%; scroll-snap-align: center; scroll-snap-stop: always; padding: 1px; }
     .thread-form { display: flex; gap: 6px; margin-bottom: 10px; }
@@ -148,7 +148,7 @@
     .thread-post p { margin-top: 3px; overflow-wrap: anywhere; }
     .thread-meta { font-size: .72rem; color: var(--sub); }
     .thread-refresh { margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 5px 9px; background: rgba(0,0,0,.03); color: var(--text); font-weight: 600; }
-    @media (prefers-reduced-motion: reduce) { .schedule-track { scroll-behavior: auto; } }
+    @media (prefers-reduced-motion: reduce) { .schedule-track, .insta-slide-wrap { scroll-behavior: auto; transition-duration: 0.01ms; } }
     .slot-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(0, 0, 0, 0.03); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03); }
     .slot-row.empty { opacity: 0.45; background: transparent; }
     .slot-num { font-size: 0.75rem; font-weight: 700; color: var(--sub); width: 28px; flex-shrink: 0; }
@@ -497,6 +497,7 @@
     let settingsAuthorized = false;
     let midnightTimer = null;
     let scheduleScrollTimer = null;
+    let countdownTouchStart = null;
 
 
     async function fetchAllFromSupabase() {
@@ -994,6 +995,29 @@
     function prevCdSlide() { setCdIndex(currentCdIndex - 1); }
     function nextCdSlide() { setCdIndex(currentCdIndex + 1); }
 
+    function startCountdownSwipe(event) {
+      if (event.touches.length !== 1) {
+        countdownTouchStart = null;
+        return;
+      }
+      const touch = event.touches[0];
+      countdownTouchStart = { x: touch.clientX, y: touch.clientY };
+    }
+
+    function finishCountdownSwipe(event) {
+      if (!countdownTouchStart || event.changedTouches.length !== 1) {
+        countdownTouchStart = null;
+        return;
+      }
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - countdownTouchStart.x;
+      const deltaY = touch.clientY - countdownTouchStart.y;
+      countdownTouchStart = null;
+      if (Math.abs(deltaX) < 45 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+      if (deltaX < 0) nextCdSlide();
+      else prevCdSlide();
+    }
+
 
     // 📝 提出物描画（「明日提出」判定）
     function renderHomeSubmissions() {
@@ -1471,6 +1495,10 @@
     currentHomeOffset = (new Date().getHours() >= 18) ? 1 : 0;
     renderOmikujiEditor();
     document.getElementById('schedule-list-container').addEventListener('scroll', handleScheduleScroll, { passive: true });
+    const countdownSwipeArea = document.querySelector('.insta-countdown-container');
+    countdownSwipeArea.addEventListener('touchstart', startCountdownSwipe, { passive: true });
+    countdownSwipeArea.addEventListener('touchend', finishCountdownSwipe, { passive: true });
+    countdownSwipeArea.addEventListener('touchcancel', () => { countdownTouchStart = null; }, { passive: true });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         renderTicker();
