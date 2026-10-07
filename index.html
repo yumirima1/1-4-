@@ -493,6 +493,7 @@
 
     const THREAD_COOLDOWN_MS = 20000;
     const THREAD_CACHE_MS = 60000;
+    const HOLIDAY_THREAD_CACHE_KEY = 'shared';
     const threadCache = new Map();
     let settingsAuthorized = false;
     let midnightTimer = null;
@@ -802,32 +803,31 @@
 
     async function renderHolidayThread(container, boardDate, force = false) {
       if (!container) return;
-      const cached = threadCache.get(boardDate);
+      const cached = threadCache.get(HOLIDAY_THREAD_CACHE_KEY);
       if (!force && cached && Date.now() - cached.time < THREAD_CACHE_MS) {
         drawHolidayThread(container, cached.posts, boardDate);
         return;
       }
-      if (container.dataset.loading === boardDate) return;
+      if (container.dataset.loading === HOLIDAY_THREAD_CACHE_KEY) return;
       if (!supabaseClient) {
         container.textContent = '掲示板に接続できません。';
         return;
       }
-      container.dataset.loading = boardDate;
+      container.dataset.loading = HOLIDAY_THREAD_CACHE_KEY;
       container.textContent = 'コメントを読み込み中…';
       const { data, error } = await supabaseClient
         .from('holiday_posts')
         .select('id, nickname, message, created_at')
-        .eq('board_date', boardDate)
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) {
-        delete container.dataset.loading;
+        if (container.dataset.loading === HOLIDAY_THREAD_CACHE_KEY) delete container.dataset.loading;
         container.textContent = '掲示板を読み込めませんでした。';
         console.error('掲示板の取得に失敗しました:', error);
         return;
       }
-      delete container.dataset.loading;
-      threadCache.set(boardDate, { time: Date.now(), posts: data || [] });
+      if (container.dataset.loading === HOLIDAY_THREAD_CACHE_KEY) delete container.dataset.loading;
+      threadCache.set(HOLIDAY_THREAD_CACHE_KEY, { time: Date.now(), posts: data || [] });
       drawHolidayThread(container, data || [], boardDate);
     }
 
@@ -838,7 +838,7 @@
       refresh.className = 'thread-refresh';
       refresh.textContent = 'コメントを更新';
       refresh.onclick = () => {
-        threadCache.delete(boardDate);
+        threadCache.delete(HOLIDAY_THREAD_CACHE_KEY);
         renderHolidayThread(container, boardDate, true);
       };
       const form = document.createElement('form');
@@ -898,7 +898,7 @@
         }
         localStorage.setItem('holiday_nickname', cleanNickname);
         localStorage.setItem(cooldownKey, String(Date.now() + THREAD_COOLDOWN_MS));
-        threadCache.delete(boardDate);
+        threadCache.delete(HOLIDAY_THREAD_CACHE_KEY);
         await renderHolidayThread(container, boardDate, true);
       });
 
