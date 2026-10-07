@@ -550,22 +550,28 @@
 
     const THREAD_COOLDOWN_MS = 20000;
     const THREAD_CACHE_MS = 60000;
+    const SETTINGS_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
     const HOLIDAY_THREAD_CACHE_KEY = 'shared';
     const threadCache = new Map();
     let settingsAuthorized = false;
     let midnightTimer = null;
     let scheduleScrollTimer = null;
     let countdownTouchStart = null;
+    let lastSettingsFetchAt = 0;
+    let settingsFetchInProgress = false;
 
 
-    async function fetchAllFromSupabase() {
+    async function fetchAllFromSupabase(showErrors = true) {
+      if (settingsFetchInProgress) return;
+      settingsFetchInProgress = true;
+      lastSettingsFetchAt = Date.now();
       try {
         if (supabaseClient) {
-          const { data, error } = await supabaseClient.from('settings').select('*');
+          const { data, error } = await supabaseClient.from('settings').select('key, value');
           let hasSavedOmikuji = false;
           if (error) {
             console.error('settingsテーブルの読み込みに失敗しました:', error);
-            alert(`設定を読み込めませんでした: ${error.message}`);
+            if (showErrors) alert(`設定を読み込めませんでした: ${error.message}`);
           } else if (data && data.length > 0) {
             const config = {};
             data.forEach(item => { config[item.key] = item.value; });
@@ -614,6 +620,7 @@
         }
       } catch (err) { console.error('通信エラー:', err); }
       finally {
+        settingsFetchInProgress = false;
         cleanAndMaintainSchedules();
         applyStylesAndText();
         renderHomeSchedule();
@@ -621,6 +628,12 @@
         renderHomeLinks();
         restoreDailyOmikuji();
       }
+    }
+
+    async function refreshSettingsIfStale() {
+      if (document.hidden || !document.getElementById('settings-view').classList.contains('hidden')) return;
+      if (settingsFetchInProgress || Date.now() - lastSettingsFetchAt < SETTINGS_REFRESH_INTERVAL_MS) return;
+      await fetchAllFromSupabase(false);
     }
 
 
@@ -1288,7 +1301,7 @@
     }
 
 
-    function showHome() { document.getElementById('settings-view').classList.add('hidden'); document.getElementById('home-view').classList.remove('hidden'); settingsAuthorized = false; renderHomeSchedule(); renderHomeSubmissions(); }
+    function showHome() { document.getElementById('settings-view').classList.add('hidden'); document.getElementById('home-view').classList.remove('hidden'); settingsAuthorized = false; renderHomeSchedule(); renderHomeSubmissions(); refreshSettingsIfStale(); }
 
 
     function renderDateSelectBar() {
@@ -1560,8 +1573,10 @@
       if (!document.hidden) {
         renderTicker();
         scheduleOmikujiMidnightReset();
+        refreshSettingsIfStale();
       }
     });
+    window.addEventListener('focus', refreshSettingsIfStale);
     updateClock(); setInterval(updateClock, 1000); fetchWeather();
     fetchAllFromSupabase();
   </script>
