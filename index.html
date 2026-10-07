@@ -411,15 +411,10 @@
 
       <details id="omikuji-admin-panel" class="form-group">
         <summary class="form-label" style="cursor:pointer;">🎲 おみくじ管理</summary>
-        <div id="omikuji-admin-status" class="form-label">管理者アカウントでログインしてください。</div>
-        <div id="omikuji-admin-login" class="file-input-wrapper">
-          <input type="email" id="admin-email" class="input" placeholder="管理者メールアドレス" autocomplete="username">
-          <input type="password" id="admin-password" class="input" placeholder="パスワード" autocomplete="current-password">
-          <button type="button" class="add-btn" onclick="adminSignIn()">ログイン</button>
-        </div>
         <div id="omikuji-admin-list"></div>
-        <button id="omikuji-add-btn" type="button" class="add-btn" onclick="addAdminOmikujiItem()" hidden>＋ おみくじを追加</button>
-        <button id="admin-signout-btn" type="button" class="settings-btn" onclick="adminSignOut()" hidden>ログアウト</button>
+        <button type="button" class="add-btn" onclick="addAdminOmikujiItem()">＋ おみくじを追加</button>
+        <button type="button" class="save-btn" onclick="saveOmikujiSettings()">おみくじ設定を保存</button>
+        <div id="omikuji-admin-status" class="form-label" aria-live="polite"></div>
       </details>
     </div>
   </div>
@@ -475,6 +470,12 @@
     let linksData = [{ label: 'Link 1', url: '' }, { label: 'Link 2', url: '' }, { label: 'Link 3', url: '' }, { label: 'Link 4', url: '' }];
     let submissionsData = []; 
     let customTags = ['休み', '定期テスト']; 
+    let omikujiList = [
+      { message: '大吉！小テストで満点！今日は自信を持っていこう。', color: '#ff2d55' },
+      { message: '中吉！平和で楽しい一日になりそう。', color: '#39ff14' },
+      { message: '小吉！誰かの親切に出会えるかも。', color: '#00c8ff' },
+      { message: '凶！忘れ物に注意。出発前に持ち物を確認しよう。', color: '#bf5af2' }
+    ];
     let selectedImageBase64 = '';
     let selectedBannerBase64 = '';
     let scheduleData = {};
@@ -486,7 +487,7 @@
     const THREAD_COOLDOWN_MS = 20000;
     const THREAD_CACHE_MS = 60000;
     const threadCache = new Map();
-    let adminUserId = null;
+    let settingsAuthorized = false;
     let midnightTimer = null;
     let scheduleScrollTimer = null;
 
@@ -513,6 +514,17 @@
             if (config.links) { try { linksData = JSON.parse(config.links); } catch(e){} }
             if (config.submissions) { try { submissionsData = JSON.parse(config.submissions); } catch(e){} }
             if (config.custom_tags) { try { customTags = JSON.parse(config.custom_tags); } catch(e){} }
+            if (config.omikuji_list) {
+              try {
+                const savedItems = JSON.parse(config.omikuji_list);
+                if (Array.isArray(savedItems)) {
+                  omikujiList = savedItems.map((item, index) => ({
+                    message: item.message || [item.rarity, item.title, item.desc].filter(Boolean).join(' ') || `おみくじ${index + 1}`,
+                    color: item.color || item.neon_color || '#39ff14'
+                  }));
+                }
+              } catch(e) { console.error('おみくじ設定を読み込めません:', e); }
+            }
           }
         }
       } catch (err) { console.error('通信エラー:', err); }
@@ -605,6 +617,14 @@
 
     function getDateObj(offsetDays = 0) { const d = new Date(); d.setDate(d.getDate() + offsetDays); return d; }
     function formatDateKey(dateObj) { return `${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
+    function legacyFormatDateKey(dateObj) { return `{String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
+    function scheduleKeyForDate(dateObj) {
+      const currentKey = formatDateKey(dateObj);
+      const legacyKey = legacyFormatDateKey(dateObj);
+      return Object.prototype.hasOwnProperty.call(scheduleData, currentKey) ? currentKey
+        : Object.prototype.hasOwnProperty.call(scheduleData, legacyKey) ? legacyKey
+        : currentKey;
+    }
     function formatISODate(dateObj) { return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
 
 
@@ -616,13 +636,11 @@
 
 
     function cleanAndMaintainSchedules() {
-      const validKeys = [];
       for (let i = 0; i <= 7; i++) {
-        const key = formatDateKey(getDateObj(i)); validKeys.push(key);
+        const key = scheduleKeyForDate(getDateObj(i));
         if (!scheduleData[key]) scheduleData[key] = { tag: '' };
         for (let p = 1; p <= 7; p++) { if (!scheduleData[key][p]) scheduleData[key][p] = { sub: '', det: '' }; }
       }
-      Object.keys(scheduleData).forEach(k => { if (!validKeys.includes(k)) delete scheduleData[k]; });
     }
 
 
@@ -638,7 +656,7 @@
       container.replaceChildren();
       for (let offset = 0; offset <= 7; offset++) {
         const targetDate = getDateObj(offset);
-        const dayData = scheduleData[formatDateKey(targetDate)] || {};
+        const dayData = scheduleData[scheduleKeyForDate(targetDate)] || {};
         const slide = document.createElement('section');
         slide.className = 'schedule-day-slide';
         slide.setAttribute('aria-label', formatDateLabel(targetDate, offset));
@@ -684,7 +702,7 @@
 
     function updateScheduleHeader() {
       const targetDate = getDateObj(currentHomeOffset);
-      const dayData = scheduleData[formatDateKey(targetDate)] || {};
+      const dayData = scheduleData[scheduleKeyForDate(targetDate)] || {};
       const currentTag = dayData.tag || '';
       document.getElementById('schedule-target-label').textContent = formatDateLabel(targetDate, currentHomeOffset);
       const tagLabelHead = document.getElementById('schedule-tag-label-head');
@@ -718,7 +736,7 @@
       updateScheduleHeader();
       renderScheduleDots();
       const targetDate = getDateObj(currentHomeOffset);
-      if ((scheduleData[formatDateKey(targetDate)] || {}).tag === '休み') {
+      if ((scheduleData[scheduleKeyForDate(targetDate)] || {}).tag === '休み') {
         const slide = document.querySelectorAll('.schedule-day-slide')[currentHomeOffset];
         if (slide && !slide.querySelector('.thread-form')) renderHolidayThread(slide.querySelector('.thread-board'), formatISODate(targetDate));
       }
@@ -734,7 +752,7 @@
         updateScheduleHeader();
         renderScheduleDots();
         const targetDate = getDateObj(currentHomeOffset);
-        if ((scheduleData[formatDateKey(targetDate)] || {}).tag === '休み') {
+        if ((scheduleData[scheduleKeyForDate(targetDate)] || {}).tag === '休み') {
           const slide = document.querySelectorAll('.schedule-day-slide')[currentHomeOffset];
           if (slide) renderHolidayThread(slide.querySelector('.thread-board'), formatISODate(targetDate));
         }
@@ -829,20 +847,13 @@
         updateCooldown();
         if (submit.disabled) return;
         submit.disabled = true;
-        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-        if (authError || !user) {
-          status.textContent = '投稿用の認証を確認できません。';
-          submit.disabled = false;
-          return;
-        }
         const { error } = await supabaseClient.from('holiday_posts').insert({
           board_date: boardDate,
-          author_id: user.id,
           nickname: cleanNickname,
           message: cleanMessage
         });
         if (error) {
-          status.textContent = error.message.includes('20秒') ? '連続投稿はできません。少しお待ちください。' : '投稿できませんでした。';
+          status.textContent = '投稿できませんでした。';
           console.error('掲示板への投稿に失敗しました:', error);
           submit.disabled = false;
           return;
@@ -1076,33 +1087,15 @@
         renderTicker(true);
         return;
       }
-      if (!supabaseClient) {
-        alert('Supabaseに接続できません。');
-        return;
-      }
-      button.disabled = true;
-      const { data, error } = await supabaseClient
-        .from('omikuji_items')
-        .select('message, neon_color')
-        .eq('enabled', true)
-        .order('sort_order')
-        .limit(100);
-      if (error) {
-        button.disabled = false;
-        console.error('おみくじの取得に失敗しました:', error);
-        alert('おみくじを取得できませんでした。');
-        return;
-      }
-      if (!data || !data.length) {
-        button.disabled = false;
+      if (!omikujiList.length) {
         alert('おみくじがまだ登録されていません。');
         return;
       }
-      const item = data[Math.floor(Math.random() * data.length)];
+      const item = omikujiList[Math.floor(Math.random() * omikujiList.length)];
       localStorage.setItem('daily_omikuji', JSON.stringify({
         date: todayISODate(),
         message: item.message,
-        color: item.neon_color
+        color: item.color
       }));
       renderTicker(true);
       scheduleOmikujiMidnightReset();
@@ -1151,19 +1144,10 @@
 
     function openAuthModal() { document.getElementById('pwd-input').value = ''; document.getElementById('auth-modal').classList.add('active'); }
     function closeAuthModal() { document.getElementById('auth-modal').classList.remove('active'); }
-    async function ensurePublicSession() {
-      if (!supabaseClient) return;
-      const { data: { session }, error } = await supabaseClient.auth.getSession();
-      if (error) throw error;
-      if (!session) {
-        const { error: signInError } = await supabaseClient.auth.signInAnonymously();
-        if (signInError) throw signInError;
-      }
-    }
-
     function verifyPassword() {
       const input = document.getElementById('pwd-input').value;
       if ((portalData.customPassword && input === portalData.customPassword) || input === _0x9b) {
+        settingsAuthorized = true;
         closeAuthModal(); showSettings();
       } else { alert('パスワードが違います'); }
     }
@@ -1176,26 +1160,28 @@
       document.getElementById('cfg-header-text').value = portalData.headerText || '';
       document.getElementById('cfg-bg-color').value = portalData.bgColor || '#fbfbfd';
       document.getElementById('cfg-notice').value = portalData.notice || '';
+      document.getElementById('omikuji-admin-panel').hidden = !settingsAuthorized;
+      renderOmikujiEditor();
 
 
-      const validKeys = []; for (let i = 0; i <= 7; i++) validKeys.push(formatDateKey(getDateObj(i)));
-      if (!selectedEditDateKey || !validKeys.includes(selectedEditDateKey)) selectedEditDateKey = formatDateKey(getDateObj(currentHomeOffset));
+      const validKeys = []; for (let i = 0; i <= 7; i++) validKeys.push(scheduleKeyForDate(getDateObj(i)));
+      if (!selectedEditDateKey || !validKeys.includes(selectedEditDateKey)) selectedEditDateKey = scheduleKeyForDate(getDateObj(currentHomeOffset));
       
       renderDateSelectBar();
       renderEventEditor();
       renderSubmissionEditor();
       renderLinkEditor();
-      refreshAdminStatus();
+      renderOmikujiEditor();
     }
 
 
-    function showHome() { document.getElementById('settings-view').classList.add('hidden'); document.getElementById('home-view').classList.remove('hidden'); renderHomeSchedule(); renderHomeSubmissions(); }
+    function showHome() { document.getElementById('settings-view').classList.add('hidden'); document.getElementById('home-view').classList.remove('hidden'); document.getElementById('omikuji-admin-panel').hidden = true; settingsAuthorized = false; renderHomeSchedule(); renderHomeSubmissions(); }
 
 
     function renderDateSelectBar() {
       const bar = document.getElementById('date-select-bar'); bar.innerHTML = '';
       for (let i = 0; i <= 7; i++) {
-        const dObj = getDateObj(i); const key = formatDateKey(dObj);
+        const dObj = getDateObj(i); const key = scheduleKeyForDate(dObj);
         const chip = document.createElement('div');
         chip.className = `date-chip ${key === selectedEditDateKey ? 'selected' : ''}`;
         chip.textContent = formatDateLabel(dObj, i);
@@ -1232,170 +1218,59 @@
     }
 
 
-    async function refreshAdminStatus() {
-      const status = document.getElementById('omikuji-admin-status');
-      const list = document.getElementById('omikuji-admin-list');
-      adminUserId = null;
-      document.getElementById('omikuji-add-btn').hidden = true;
-      document.getElementById('admin-signout-btn').hidden = true;
-      document.getElementById('omikuji-admin-login').hidden = false;
-      list.replaceChildren();
-      if (!supabaseClient) {
-        status.textContent = 'Supabaseに接続できません。';
-        return;
-      }
-      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-      if (authError) {
-        status.textContent = '管理者認証を確認できません。';
-        console.error('認証情報の確認に失敗しました:', authError);
-        return;
-      }
-      if (!user) {
-        status.textContent = '管理者アカウントでログインしてください。';
-        return;
-      }
-      const { data, error } = await supabaseClient
-        .from('admin_users')
-        .select('user_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      if (error) {
-        status.textContent = '管理者権限を確認できません。';
-        console.error('管理者権限の確認に失敗しました:', error);
-        return;
-      }
-      if (!data) {
-        status.textContent = 'このアカウントには編集権限がありません。';
-        return;
-      }
-      adminUserId = user.id;
-      status.textContent = '管理者としてログイン中です。';
-      document.getElementById('omikuji-admin-login').hidden = true;
-      document.getElementById('omikuji-add-btn').hidden = false;
-      document.getElementById('admin-signout-btn').hidden = false;
-      await renderAdminOmikuji();
-    }
-
-    async function adminSignIn() {
-      if (!supabaseClient) {
-        alert('Supabaseに接続できません。');
-        return;
-      }
-      const email = document.getElementById('admin-email').value.trim();
-      const password = document.getElementById('admin-password').value;
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) {
-        alert(`管理者ログインに失敗しました: ${error.message}`);
-        return;
-      }
-      await refreshAdminStatus();
-    }
-
-    async function adminSignOut() {
-      const { error } = await supabaseClient.auth.signOut();
-      if (error) {
-        alert(`ログアウトに失敗しました: ${error.message}`);
-        return;
-      }
-      adminUserId = null;
-      await ensurePublicSession();
-      await refreshAdminStatus();
-    }
-
-    async function renderAdminOmikuji() {
+    function renderOmikujiEditor() {
       const container = document.getElementById('omikuji-admin-list');
       container.replaceChildren();
-      const { data, error } = await supabaseClient
-        .from('omikuji_items')
-        .select('id, message, neon_color, enabled')
-        .order('sort_order');
-      if (error) {
-        container.textContent = 'おみくじ一覧を取得できませんでした。';
-        console.error('おみくじ一覧の取得に失敗しました:', error);
-        return;
-      }
-      for (const item of data || []) {
+      omikujiList.forEach((item, index) => {
         const row = document.createElement('div');
         row.className = 'edit-item-row';
         const message = document.createElement('input');
         message.className = 'input';
         message.maxLength = 160;
-        message.value = item.message;
+        message.value = item.message || '';
         message.placeholder = '大吉！〜〜〜';
         message.style.flex = '2';
         const color = document.createElement('input');
         color.className = 'input';
-        color.type = 'text';
-        color.maxLength = 40;
-        color.value = item.neon_color || '#39ff14';
-        color.placeholder = '#39ff14 または rgb(57, 255, 20)';
+        color.type = 'color';
+        color.value = /^#[0-9a-f]{6}$/i.test(item.color || '') ? item.color : '#39ff14';
         color.style.flex = '1';
         color.setAttribute('aria-label', '発光色');
-        const save = document.createElement('button');
-        save.type = 'button';
-        save.className = 'add-btn';
-        save.textContent = '保存';
-        save.onclick = async () => {
-          if (!message.value.trim()) {
-            alert('おみくじの文章を入力してください。');
-            return;
-          }
-          if (!CSS.supports('color', color.value.trim())) {
-            alert('発光色は有効なCSSカラー（HexまたはRGB）で入力してください。');
-            return;
-          }
-          const result = await supabaseClient.from('omikuji_items')
-            .update({ message: message.value.trim(), neon_color: color.value.trim() })
-            .eq('id', item.id);
-          if (result.error) {
-            alert(`保存に失敗しました: ${result.error.message}`);
-            return;
-          }
-          await renderAdminOmikuji();
-        };
         const remove = document.createElement('button');
         remove.type = 'button';
         remove.className = 'del-btn';
         remove.textContent = '削除';
-        remove.onclick = async () => {
-          const result = await supabaseClient.from('omikuji_items').delete().eq('id', item.id);
-          if (result.error) {
-            alert(`削除に失敗しました: ${result.error.message}`);
-            return;
-          }
-          await renderAdminOmikuji();
+        remove.onclick = () => {
+          omikujiList.splice(index, 1);
+          renderOmikujiEditor();
         };
-        const enabled = document.createElement('label');
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = item.enabled;
-        checkbox.onchange = async () => {
-          const result = await supabaseClient.from('omikuji_items')
-            .update({ enabled: checkbox.checked })
-            .eq('id', item.id);
-          if (result.error) {
-            checkbox.checked = !checkbox.checked;
-            alert(`公開設定の更新に失敗しました: ${result.error.message}`);
-          }
-        };
-        enabled.append(checkbox, document.createTextNode(' 公開'));
-        row.append(message, color, enabled, save, remove);
+        row.append(message, color, remove);
         container.append(row);
-      }
+      });
     }
 
-    async function addAdminOmikujiItem() {
-      if (!adminUserId) return;
-      const { error } = await supabaseClient.from('omikuji_items').insert({
-        message: '新しいおみくじ',
-        neon_color: '#39ff14',
-        enabled: true
-      });
+    function addAdminOmikujiItem() {
+      omikujiList.push({ message: '', color: '#39ff14' });
+      renderOmikujiEditor();
+    }
+
+    async function saveOmikujiSettings() {
+      if (!settingsAuthorized || !supabaseClient) return;
+      const items = [...document.querySelectorAll('#omikuji-admin-list .edit-item-row')];
+      omikujiList = items.map(row => ({
+        message: row.querySelector('input[type="text"]').value.trim(),
+        color: row.querySelector('input[type="color"]').value
+      })).filter(item => item.message);
+      const { error } = await supabaseClient.from('settings').upsert({
+        key: 'omikuji_list',
+        value: JSON.stringify(omikujiList)
+      }, { onConflict: 'key' });
       if (error) {
-        alert(`追加に失敗しました: ${error.message}`);
+        alert(`おみくじの保存に失敗しました: ${error.message}`);
         return;
       }
-      await renderAdminOmikuji();
+      document.getElementById('omikuji-admin-status').textContent = 'おみくじ設定を保存しました。';
+      renderTicker();
     }
 
 
@@ -1526,6 +1401,7 @@
 
 
     currentHomeOffset = (new Date().getHours() >= 18) ? 1 : 0;
+    renderOmikujiEditor();
     document.getElementById('schedule-list-container').addEventListener('scroll', handleScheduleScroll, { passive: true });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
@@ -1534,12 +1410,7 @@
       }
     });
     updateClock(); setInterval(updateClock, 1000); fetchWeather();
-    ensurePublicSession()
-      .then(fetchAllFromSupabase)
-      .catch(error => {
-        console.error('Supabase認証の初期化に失敗しました:', error);
-        fetchAllFromSupabase();
-      });
+    fetchAllFromSupabase();
   </script>
 </body>
 </html>
