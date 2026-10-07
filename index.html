@@ -645,13 +645,22 @@
 
     function getDateObj(offsetDays = 0) { const d = new Date(); d.setDate(d.getDate() + offsetDays); return d; }
     function formatDateKey(dateObj) { return `${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
-    function legacyFormatDateKey(dateObj) { return `{String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
     function scheduleKeyForDate(dateObj) {
-      const currentKey = formatDateKey(dateObj);
-      const legacyKey = legacyFormatDateKey(dateObj);
-      return Object.prototype.hasOwnProperty.call(scheduleData, currentKey) ? currentKey
-        : Object.prototype.hasOwnProperty.call(scheduleData, legacyKey) ? legacyKey
-        : currentKey;
+      const isoKey = formatISODate(dateObj);
+      const legacyKey = formatDateKey(dateObj);
+      const hasScheduleContent = key => {
+        const day = scheduleData[key];
+        if (!day) return false;
+        if (typeof day.tag === 'string' && day.tag.trim()) return true;
+        return Array.from({ length: 7 }, (_, index) => day[index + 1])
+          .some(period => period && (String(period.sub || '').trim() || String(period.det || '').trim()));
+      };
+
+      if (hasScheduleContent(isoKey)) return isoKey;
+      if (hasScheduleContent(legacyKey)) return legacyKey;
+      if (Object.prototype.hasOwnProperty.call(scheduleData, isoKey)) return isoKey;
+      if (Object.prototype.hasOwnProperty.call(scheduleData, legacyKey)) return legacyKey;
+      return isoKey;
     }
     function formatISODate(dateObj) { return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
 
