@@ -260,12 +260,15 @@
         <input type="color" id="cfg-bg-color" value="#fbfbfd" style="width: 100%; height: 38px; border: none; cursor: pointer; border-radius: 8px;">
       </div>
       
-      <!-- 背景画像設定（✕解除ボタン追加、URL欄削除） -->
+      <!-- 背景画像設定 -->
       <div class="form-group">
-        <label class="form-label">背景画像（端末のファイルから挿入）</label>
+        <label class="form-label">背景画像設定</label>
         <div class="file-input-wrapper">
           <input type="file" id="cfg-bg-file" accept="image/*" class="input" onchange="handleFileSelect(event)" style="flex: 1;">
           <button type="button" class="del-btn" onclick="clearBgImage()">✕ 画像解除</button>
+        </div>
+        <div style="margin-top: 6px;">
+          <input type="text" id="cfg-bg-url" class="input" placeholder="または画像URL（https://...）を入力">
         </div>
       </div>
 
@@ -443,6 +446,8 @@
       document.getElementById('cfg-password').value = '';
       document.getElementById('cfg-header-text').value = localStorage.getItem('portal_header_text') || '';
       document.getElementById('cfg-bg-color').value = localStorage.getItem('portal_bg_color') || '#fbfbfd';
+      const bgUrlInput = document.getElementById('cfg-bg-url');
+      if (bgUrlInput) bgUrlInput.value = localStorage.getItem('portal_bg_url') || '';
       document.getElementById('cfg-notice').value = localStorage.getItem('portal_notice') || '';
 
       renderDateSelectBar();
@@ -469,6 +474,7 @@
         chip.className = `date-chip ${key === selectedEditDateKey ? 'selected' : ''}`;
         chip.textContent = formatDateLabel(dObj, i);
         chip.onclick = () => {
+          captureScheduleEditorInputs();
           selectedEditDateKey = key;
           renderDateSelectBar();
         };
@@ -493,6 +499,12 @@
         `;
         container.appendChild(row);
       }
+
+      container.querySelectorAll('.input').forEach(input => {
+        input.addEventListener('input', () => {
+          captureScheduleEditorInputs();
+        });
+      });
     }
 
     function captureScheduleEditorInputs() {
@@ -526,12 +538,14 @@
       }
     }
 
-    /* 背景画像をリセットする処理 */
     function clearBgImage() {
       selectedImageBase64 = '';
       localStorage.removeItem('portal_bg_img_file');
       localStorage.removeItem('portal_bg_url');
-      document.getElementById('cfg-bg-file').value = '';
+      const bgFileInput = document.getElementById('cfg-bg-file');
+      if (bgFileInput) bgFileInput.value = '';
+      const bgUrlInput = document.getElementById('cfg-bg-url');
+      if (bgUrlInput) bgUrlInput.value = '';
       applyStylesAndText();
     }
 
@@ -545,10 +559,13 @@
 
       const headerText = document.getElementById('cfg-header-text').value.trim();
       const bgColor = document.getElementById('cfg-bg-color').value;
+      const bgUrlInput = document.getElementById('cfg-bg-url');
+      const bgUrl = bgUrlInput ? bgUrlInput.value.trim() : '';
       const notice = document.getElementById('cfg-notice').value.trim();
 
       localStorage.setItem('portal_header_text', headerText);
       localStorage.setItem('portal_bg_color', bgColor);
+      localStorage.setItem('portal_bg_url', bgUrl);
       localStorage.setItem('portal_notice', notice);
       localStorage.setItem('portal_schedules', JSON.stringify(scheduleData));
 
@@ -570,6 +587,7 @@
     function applyStylesAndText() {
       const headerText = localStorage.getItem('portal_header_text') || '';
       const bgColor = localStorage.getItem('portal_bg_color') || '#fbfbfd';
+      const bgUrl = localStorage.getItem('portal_bg_url') || '';
       const notice = localStorage.getItem('portal_notice') || '';
 
       document.getElementById('header-custom-display').textContent = headerText;
@@ -577,6 +595,8 @@
 
       if (selectedImageBase64) {
         document.body.style.backgroundImage = `url('${selectedImageBase64}')`;
+      } else if (bgUrl) {
+        document.body.style.backgroundImage = `url('${bgUrl}')`;
       } else {
         document.body.style.backgroundImage = 'none';
       }
