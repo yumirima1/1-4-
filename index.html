@@ -2,597 +2,480 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>1−4 案内箱</title>
-
-  <!-- ☁️ Supabase ライブラリ -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1-4 案内箱</title>
+  <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
     :root {
-      --bg: #fbfbfd;
-      --card: rgba(255, 255, 255, 0.88);
-      --text: #1d1d1f;
-      --sub: #6e6e73;
-      --border: rgba(0, 0, 0, 0.08);
-      --radius: 18px;
-      --accent-red: #ff3b30;
-      --accent-blue: #007aff;
-      --accent-orange: #ff9500;
-      --accent-purple: #af52de;
+      --bg-color: #fbfbfd;
+      --card-bg: rgba(255, 255, 255, 0.88);
+      --text-color: #1d1d1f;
+      --accent-color: #0071e3;
+      --danger-color: #ff3b30;
+      --neon-color: #ff2d55;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Roboto, sans-serif; }
+    
     body {
-      background-color: var(--bg);
+      background-color: var(--bg-color);
       background-size: cover;
       background-position: center;
       background-attachment: fixed;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-      color: var(--text);
-      padding: clamp(12px, 2.5vw, 24px) clamp(12px, 3vw, 24px) calc(40px + env(safe-area-inset-bottom)) clamp(12px, 3vw, 24px);
-      max-width: 760px;
-      margin: 0 auto;
-      -webkit-font-smoothing: antialiased;
+      color: var(--text-color);
+      min-height: 100vh;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
     }
 
-    .view { display: flex; flex-direction: column; gap: clamp(10px, 1.8vw, 16px); width: 100%; }
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding-bottom: 40px;
+    }
+
+    /* --- UIカード基本デザイン --- */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+      border: 1px solid rgba(255,255,255,0.4);
+      transition: all 0.3s ease;
+    }
+
     .hidden { display: none !important; }
 
-    /* すりガラスカード */
-    .card {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: clamp(12px, 2vw, 18px);
-      border: 1px solid var(--border);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    .btn {
+      background: var(--accent-color);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.2s ease, background-color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .input, .select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.15);
+      background: rgba(255,255,255,0.9);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input:focus, .select:focus { border-color: var(--accent-color); }
+
+    /* --- ヘッダー & 電光掲示板 --- */
+    .header-bar { display: flex; justify-content: space-between; align-items: center; }
+    .header-title { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+
+    .ticker-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0,0,0,0.04);
+      padding: 8px 12px;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .ticker-content { flex: 1; overflow: hidden; white-space: nowrap; }
+    .ticker-text {
+      display: inline-block;
+      animation: ticker 14s linear infinite;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    @keyframes ticker {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
     }
 
-    /* トップエリア */
-    .top-section-container { display: flex; gap: 10px; align-items: stretch; width: 100%; }
-    .top-left-group { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-
-    .banner-card {
-      width: 115px; flex-shrink: 0; padding: 0; overflow: hidden;
-      border-radius: var(--radius); display: flex; align-items: center; justify-content: center;
+    /* --- パチッパチッ滑らかなネオン点滅演出 --- */
+    .neon-text {
+      display: inline-block;
+      color: var(--neon-color);
+      font-weight: 700;
+      animation: neonFlicker 1.8s ease-in-out forwards;
     }
-    .banner-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-    /* ヘッダー */
-    .status-bar { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 10px 12px; }
-    .header-left { display: flex; flex-direction: column; flex-shrink: 0; }
-    .date { font-size: clamp(0.72rem, 1vw, 0.85rem); color: var(--sub); font-weight: 500; }
-    .time { font-size: clamp(1.5rem, 3.2vw, 2.2rem); font-weight: 700; line-height: 1; letter-spacing: -0.03em; }
-
-    .header-center { flex: 1; text-align: center; padding: 0 2px; overflow: hidden; }
-    .header-custom-text { font-size: clamp(0.72rem, 1vw, 0.9rem); font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    .header-right { display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 4px; flex-shrink: 0; }
-    .weather { font-size: clamp(0.68rem, 0.9vw, 0.78rem); color: var(--sub); background: rgba(0,0,0,0.04); padding: 3px 8px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
-    .settings-btn { background: rgba(0,0,0,0.05); border: none; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-size: clamp(0.72rem, 0.95vw, 0.82rem); color: var(--text); font-weight: 600; transition: background 0.2s; white-space: nowrap; }
-    .settings-btn:active { background: rgba(0,0,0,0.12); }
-
-    /* 明日提出・緊急提出物カード */
-    .urgent-submission-card {
-      background: linear-gradient(135deg, rgba(255, 59, 48, 0.08), rgba(255, 149, 0, 0.08));
-      border: 1px solid rgba(255, 59, 48, 0.2);
+    @keyframes neonFlicker {
+      0% { opacity: 0; text-shadow: none; }
+      10% { opacity: 0.9; text-shadow: 0 0 6px var(--neon-color); }
+      14% { opacity: 0.1; text-shadow: none; }
+      22% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
+      32% { opacity: 0.2; text-shadow: none; }
+      50% { opacity: 1; text-shadow: 0 0 12px var(--neon-color), 0 0 22px var(--neon-color); }
+      58% { opacity: 0.6; text-shadow: 0 0 6px var(--neon-color); }
+      100% { opacity: 1; text-shadow: 0 0 8px var(--neon-color), 0 0 18px var(--neon-color), 0 0 28px var(--neon-color); }
     }
-    .urgent-header { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 700; color: var(--accent-red); margin-bottom: 8px; }
 
-    /* カウントダウン（インスタ風） */
-    .insta-countdown-container { position: relative; overflow: hidden; border-radius: var(--radius); }
-    .insta-slide-wrap { display: flex; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); width: 100%; }
-    .insta-slide-item { flex: 0 0 100%; min-width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 4px 2px; }
-    .countdown-title { font-size: 0.85rem; font-weight: 700; color: var(--sub); }
-    .countdown-days-wrap { display: flex; align-items: baseline; gap: 3px; }
-    .countdown-label { font-size: 0.75rem; font-weight: 600; color: var(--sub); }
-    .countdown-num { font-size: 1.4rem; font-weight: 800; color: var(--accent-red); }
+    /* 一日おみくじ（小型ボタン） */
+    .omikuji-mini-btn {
+      background: linear-gradient(135deg, #ff9500, #ff2d55);
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(255,45,85,0.3);
+      transition: transform 0.15s ease;
+    }
+    .omikuji-mini-btn:active { transform: scale(0.92); }
 
-    .insta-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
-    .insta-arrow { background: rgba(0,0,0,0.05); border: none; width: 26px; height: 26px; border-radius: 13px; cursor: pointer; font-size: 0.75rem; font-weight: bold; color: var(--text); display: flex; align-items: center; justify-content: center; }
-    .insta-arrow:disabled { opacity: 0.2; cursor: default; }
-    .insta-dots { display: flex; gap: 5px; align-items: center; justify-content: center; }
-    .insta-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(0,0,0,0.2); transition: all 0.2s; }
-    .insta-dot.active { width: 8px; height: 8px; background: var(--accent-blue); }
+    /* --- 時間割 & iOS風滑らかスライド --- */
+    .sched-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .sched-slider-outer { overflow: hidden; width: 100%; position: relative; touch-action: pan-y; }
+    .sched-slider-inner {
+      display: flex;
+      width: 100%;
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: transform;
+    }
+    .sched-slide { flex: 0 0 100%; width: 100%; }
 
-    /* 電光掲示板 */
-    .ticker-wrap { overflow: hidden; white-space: nowrap; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; backdrop-filter: blur(16px); }
-    .ticker-content { display: inline-block; padding-left: 100%; animation: marquee 15s linear infinite; font-size: clamp(0.85rem, 1.2vw, 0.95rem); font-weight: 500; color: var(--text); }
-    @keyframes marquee { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+    .slot-row {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      gap: 12px;
+    }
+    .slot-row:last-child { border-bottom: none; }
+    .slot-row.empty { opacity: 0.5; }
+    .slot-num { font-weight: 700; width: 38px; font-size: 14px; color: var(--accent-color); }
+    .slot-subject { font-weight: 600; width: 95px; font-size: 15px; }
+    .slot-detail { font-size: 13px; color: #666; flex: 1; word-break: break-word; }
 
-    /* 時間割 */
-    .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
-    .schedule-title-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .schedule-title { font-size: clamp(0.95rem, 1.3vw, 1.1rem); font-weight: 700; }
-    .schedule-badge { font-size: 0.78rem; background: var(--text); color: #fff; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
-    .schedule-tag-badge { font-size: 0.78rem; background: rgba(0, 122, 255, 0.12); color: var(--accent-blue); padding: 3px 10px; border-radius: 12px; font-weight: 700; border: 1px solid rgba(0, 122, 255, 0.2); }
+    /* --- 休日限定：みんなの一言スレッド --- */
+    .thread-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding: 4px;
+      margin-top: 6px;
+    }
+    .thread-item {
+      background: rgba(255,255,255,0.95);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      border-left: 3px solid var(--accent-color);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .thread-time { font-size: 10px; color: #888; margin-top: 3px; text-align: right; }
+    .thread-form { display: flex; gap: 8px; margin-top: 10px; }
 
-    .schedule-list { display: flex; flex-direction: column; gap: 6px; }
-    .slot-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(0, 0, 0, 0.03); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03); }
-    .slot-row.empty { opacity: 0.45; background: transparent; }
-    .slot-num { font-size: 0.75rem; font-weight: 700; color: var(--sub); width: 28px; flex-shrink: 0; }
-    .slot-subject { font-size: 0.9rem; font-weight: 700; color: var(--text); width: 110px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .slot-detail { font-size: 0.78rem; color: var(--sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* --- カウントダウン / インスタ風スライド --- */
+    .insta-slide-item { text-align: center; padding: 10px 0; }
+    .countdown-title { font-size: 15px; font-weight: 700; color: #444; }
+    .countdown-days-wrap { margin-top: 4px; display: flex; align-items: baseline; justify-content: center; gap: 4px; }
+    .countdown-num { font-size: 32px; font-weight: 800; color: var(--accent-color); }
+    .countdown-label { font-size: 14px; font-weight: 600; }
 
-    /* 休日曲共有 */
-    .holiday-song-card { background: linear-gradient(135deg, rgba(175, 82, 222, 0.08), rgba(0, 122, 255, 0.08)); border: 1px solid rgba(175, 82, 222, 0.2); }
-    .song-title-head { font-size: 0.9rem; font-weight: 700; color: var(--accent-purple); display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-    .song-box { display: flex; flex-direction: column; gap: 4px; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 12px; }
-    .song-name { font-weight: 700; font-size: 0.95rem; }
-    .song-artist { font-size: 0.78rem; color: var(--sub); }
-    .song-link-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; color: var(--accent-blue); text-decoration: none; font-weight: 600; margin-top: 4px; }
+    .dots-wrap { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+    .insta-dot { width: 6px; height: 6px; border-radius: 50%; background: #ccc; transition: all 0.25s; cursor: pointer; }
+    .insta-dot.active { width: 18px; border-radius: 4px; background: var(--accent-color); }
 
-    /* 1日1回おみくじ */
-    .omikuji-card { text-align: center; padding: 16px; background: linear-gradient(135deg, rgba(255, 204, 0, 0.12), rgba(255, 149, 0, 0.08)); border: 1px solid rgba(255, 149, 0, 0.2); }
-    .omikuji-btn { background: linear-gradient(135deg, #ff9500, #ff2d55); color: #fff; border: none; padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 45, 85, 0.25); transition: transform 0.1s; }
-    .omikuji-btn:active { transform: scale(0.96); }
-    .omikuji-rarity { font-size: 0.8rem; font-weight: 800; color: var(--accent-orange); text-transform: uppercase; margin-top: 8px; }
-    .omikuji-result { font-size: 1.15rem; font-weight: 800; color: var(--text); margin-top: 2px; }
-    .omikuji-desc { font-size: 0.8rem; color: var(--sub); margin-top: 4px; font-weight: 500; }
+    /* --- 提出物表示 --- */
+    .submission-row { padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .submission-row:last-child { border-bottom: none; }
+    .submission-title { font-weight: 700; font-size: 14px; }
+    .submission-date { font-size: 12px; color: var(--danger-color); font-weight: 600; margin-top: 2px; }
+    .submission-detail { font-size: 12px; color: #666; margin-top: 2px; }
 
-    /* 提出物UI */
-    .submission-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(0, 0, 0, 0.03); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03); }
-    .submission-title { font-size: 0.9rem; font-weight: 700; color: var(--text); width: 110px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .submission-date { font-size: 0.73rem; font-weight: 700; color: var(--accent-red); background: rgba(255, 59, 48, 0.1); padding: 3px 8px; border-radius: 6px; flex-shrink: 0; white-space: nowrap; }
-    .submission-detail { font-size: 0.78rem; color: var(--sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* --- 外部リンクボタン --- */
+    .compact-link-btn {
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(0,0,0,0.1);
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+      transition: all 0.2s;
+    }
+    .compact-link-btn:active { transform: scale(0.95); background: #eee; }
 
-    /* LINK */
-    .home-links-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-    .compact-link-btn { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: clamp(8px, 1.2vw, 12px) 4px; font-size: clamp(0.72rem, 1vw, 0.82rem); font-weight: 600; color: var(--text); text-align: center; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* --- 設定画面 & アコーディオンUI --- */
+    .settings-section { margin-bottom: 20px; }
+    .section-title { font-size: 14px; font-weight: 700; color: #666; margin-bottom: 8px; }
+    .edit-item-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .del-btn { background: var(--danger-color); color: white; border: none; border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
+    
+    .accordion-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.04);
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    .accordion-header:hover { background: rgba(0,0,0,0.07); }
 
-    /* 設定画面 */
-    .settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .settings-title { font-size: 1.2rem; font-weight: 700; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-    .form-label { font-size: 0.82rem; font-weight: 600; color: var(--sub); }
-    .input, .select { padding: 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.9rem; background: rgba(245, 245, 247, 0.8); outline: none; }
-    .file-input-wrapper { display: flex; gap: 8px; align-items: center; }
+    .date-chip-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; }
+    .date-chip { padding: 6px 12px; border-radius: 20px; background: #eee; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+    .date-chip.selected { background: var(--accent-color); color: white; }
 
-    .date-select-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; scrollbar-width: none; }
-    .date-chip { flex: 0 0 auto; padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border); font-size: 0.78rem; font-weight: 600; background: #fff; cursor: pointer; color: var(--sub); }
-    .date-chip.selected { background: var(--text); color: #fff; border-color: var(--text); }
-
-    .tag-select-container { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 10px; }
-    .tag-display-btn { background: var(--text); color: #fff; border: none; padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
-
-    .schedule-editor-grid { display: flex; flex-direction: column; gap: 8px; }
-    .period-edit-row { display: flex; gap: 6px; align-items: center; }
-    .period-tag { font-size: 0.75rem; font-weight: 700; width: 32px; color: var(--sub); flex-shrink: 0; }
-
-    .edit-item-row { display: flex; gap: 6px; align-items: center; background: rgba(249, 249, 251, 0.8); padding: 8px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 6px; flex-wrap: wrap; }
-    .del-btn { background: var(--accent-red); color: #fff; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
-    .add-btn { background: #34c759; color: #fff; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
-    .save-btn { background: var(--text); color: #fff; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; margin-top: 10px; }
-
-    /* モーダル */
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 1000; }
-    .modal.active { opacity: 1; pointer-events: auto; }
-    .modal-box { background: var(--card); width: 90%; max-width: 380px; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; }
-    .modal-close-btn { background: rgba(0,0,0,0.06); border: none; font-size: 1.1rem; width: 30px; height: 30px; border-radius: 15px; cursor: pointer; color: var(--sub); font-weight: bold; display: flex; align-items: center; justify-content: center; }
-
-    .tag-list-chips { display: flex; flex-wrap: wrap; gap: 8px; max-height: 180px; overflow-y: auto; padding: 4px; }
-    .tag-chip-item { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: #fff; font-size: 0.85rem; font-weight: 600; color: var(--text); cursor: pointer; }
-    .tag-chip-item.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
+    .tag-chip-item { padding: 6px 12px; border-radius: 12px; background: #f0f0f0; font-size: 13px; cursor: pointer; margin-right: 6px; margin-bottom: 6px; display: inline-block; }
+    .tag-chip-item.active { background: var(--accent-color); color: white; }
   </style>
 </head>
 <body>
+  <div class="app-container">
+    <!-- ==================== メインホームビュー ==================== -->
+    <div id="home-view">
+      <!-- ヘッダー -->
+      <div class="card header-bar">
+        <div>
+          <div id="header-custom-display" class="header-title"></div>
+          <div id="weather" style="font-size: 12px; color: #666; margin-top: 2px;"></div>
+        </div>
+        <button class="btn" onclick="openAuthModal()" style="padding: 6px 12px; font-size: 12px;">設定</button>
+      </div>
 
-  <!-- ================= ホーム画面 ================= -->
-  <div id="home-view" class="view">
+      <!-- 電光掲示板 ＆ 一日おみくじボタン -->
+      <div class="card ticker-wrapper" style="margin-top: 12px;">
+        <div class="ticker-content">
+          <span id="ticker-text" class="ticker-text"></span>
+        </div>
+        <button id="omikuji-mini-btn" class="omikuji-mini-btn" onclick="drawOmikuji()">🎲 一日おみくじ</button>
+      </div>
 
-    <!-- トップコンテナ -->
-    <div class="top-section-container">
-      <div class="top-left-group">
-        <header class="card status-bar">
-          <div class="header-left">
-            <div id="date" class="date">--/-- (-)</div>
-            <div id="time" class="time">00:00</div>
+      <!-- バナーカード -->
+      <div id="banner-card" class="card hidden" style="margin-top: 12px; padding: 0; overflow: hidden;">
+        <img id="banner-img" src="" alt="バナー" style="width: 100%; display: block;">
+      </div>
+
+      <!-- 時間割スライド表示 -->
+      <div class="card" style="margin-top: 12px;">
+        <div class="sched-nav">
+          <button id="sched-prev-btn" class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="prevHomeOffset()">◀</button>
+          <div style="text-align: center;">
+            <div id="schedule-target-label" style="font-weight: 700; font-size: 15px;"></div>
+            <div id="schedule-tag-label-head" style="font-size: 11px; color: var(--accent-color); font-weight: 600;" class="hidden"></div>
           </div>
-
-          <div class="header-center">
-            <div id="header-custom-display" class="header-custom-text"></div>
-          </div>
-
-          <div class="header-right">
-            <div id="weather" class="weather">福岡 --°C</div>
-            <button class="settings-btn" onclick="openAuthModal()">設定</button>
-          </div>
-        </header>
-
-        <!-- 🚨 「明日提出」緊急提出物カード（カウントダウンの上に配置） -->
-        <div id="urgent-submission-card" class="card urgent-submission-card hidden">
-          <div class="urgent-header">
-            <span>🚨 明日締め切り・提出物</span>
-          </div>
-          <div id="urgent-submission-list" class="schedule-list"></div>
+          <button id="sched-next-btn" class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="nextHomeOffset()">▶</button>
         </div>
 
-        <!-- ⏳ カウントダウン（インスタ風スライド） -->
-        <div id="countdown-card" class="card hidden">
-          <div class="insta-countdown-container">
-            <div id="countdown-slide-wrap" class="insta-slide-wrap"></div>
-          </div>
-          <div id="countdown-insta-nav" class="insta-nav">
-            <button id="cd-prev-btn" class="insta-arrow" onclick="prevCdSlide()">◀</button>
-            <div id="cd-dots-container" class="insta-dots"></div>
-            <button id="cd-next-btn" class="insta-arrow" onclick="nextCdSlide()">▶</button>
+        <div id="sched-slider-outer" class="sched-slider-outer">
+          <div id="sched-slider-inner" class="sched-slider-inner">
+            <div id="schedule-list-container" class="sched-slide"></div>
           </div>
         </div>
+
+        <div id="sched-dots-container" class="dots-wrap"></div>
       </div>
 
-      <!-- 縦長広告バナー -->
-      <div id="banner-card" class="card banner-card hidden">
-        <img id="banner-img" class="banner-img" src="" alt="広告バナー">
-      </div>
-    </div>
-
-    <!-- 電光掲示板 -->
-    <div class="ticker-wrap">
-      <div id="ticker-text" class="ticker-content">お知らせはありません</div>
-    </div>
-
-    <!-- 📅 時間割 -->
-    <div class="card">
-      <div class="schedule-header">
-        <div class="schedule-title-group">
-          <span class="schedule-title">時間割</span>
-          <span id="schedule-tag-label-head" class="schedule-tag-badge hidden">#休み</span>
-          <span id="schedule-target-label" class="schedule-badge">--</span>
-          <span id="schedule-tag-label-date" class="schedule-tag-badge hidden">#休み</span>
+      <!-- 休日限定楽曲カード (設定で登録されている場合のみ) -->
+      <div id="holiday-song-card" class="card hidden" style="margin-top: 12px;">
+        <div class="section-title">🎵 休日のおすすめ楽曲</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div id="song-display-title" style="font-weight: 700; font-size: 14px;"></div>
+            <div id="song-display-artist" style="font-size: 12px; color: #666;"></div>
+          </div>
+          <a id="song-display-link" href="#" target="_blank" class="btn" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">聴く</a>
         </div>
       </div>
-      
-      <div id="schedule-list-container" class="schedule-list"></div>
 
-      <div class="insta-nav">
-        <button id="sched-prev-btn" class="insta-arrow" onclick="prevHomeOffset()">◀</button>
-        <div id="sched-dots-container" class="insta-dots"></div>
-        <button id="sched-next-btn" class="insta-arrow" onclick="nextHomeOffset()">▶</button>
+      <!-- 提出物 (明日締め切り緊急枠) -->
+      <div id="urgent-submission-card" class="card hidden" style="margin-top: 12px; border: 1.5px solid var(--danger-color);">
+        <div class="section-title" style="color: var(--danger-color);">⚠️ 明日締切の提出物</div>
+        <div id="urgent-submission-list"></div>
       </div>
-    </div>
 
-    <!-- 🎵 休みの日の曲共有カード -->
-    <div id="holiday-song-card" class="card holiday-song-card hidden">
-      <div class="song-title-head">
-        <span>🎵 休日限定・みんなの好きな曲</span>
-      </div>
-      <div class="song-box">
-        <div id="song-display-title" class="song-name">楽曲未設定</div>
-        <div id="song-display-artist" class="song-artist">アーティスト名</div>
-        <a id="song-display-link" href="#" target="_blank" class="song-link-btn hidden">▶ 曲を聴く・動画を見る</a>
-      </div>
-    </div>
-
-    <!-- 🎲 1日1回おみくじ -->
-    <div class="card omikuji-card">
-      <div style="font-size:0.85rem; font-weight:700; color:var(--sub); margin-bottom:6px;">🎲 本日の学校おみくじ (1日1回)</div>
-      <button id="omikuji-btn" class="omikuji-btn" onclick="drawOmikuji()">おみくじを引く！</button>
-      <div id="omikuji-rarity" class="omikuji-rarity hidden"></div>
-      <div id="omikuji-result" class="omikuji-result hidden"></div>
-      <div id="omikuji-desc" class="omikuji-desc hidden"></div>
-    </div>
-
-    <!-- 📝 全提出物一覧 -->
-    <div id="submissions-card" class="card hidden">
-      <div class="schedule-header" style="margin-bottom: 8px;">
-        <div class="schedule-title-group">
-          <span class="schedule-title">📝 提出物・課題一覧</span>
+      <!-- カウントダウン -->
+      <div id="countdown-card" class="card hidden" style="margin-top: 12px;">
+        <div id="countdown-slide-wrap"></div>
+        <div id="countdown-insta-nav" class="dots-wrap">
+          <button id="cd-prev-btn" onclick="prevCdSlide()" style="display:none;"></button>
+          <div id="cd-dots-container" class="dots-wrap"></div>
+          <button id="cd-next-btn" onclick="nextCdSlide()" style="display:none;"></button>
         </div>
       </div>
-      <div id="submissions-list-container" class="schedule-list"></div>
+
+      <!-- 提出物一覧 -->
+      <div id="submissions-card" class="card hidden" style="margin-top: 12px;">
+        <div class="section-title">📝 提出物一覧</div>
+        <div id="submissions-list-container"></div>
+      </div>
+
+      <!-- 外部リンク -->
+      <div id="home-links" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;"></div>
     </div>
 
-    <!-- 🔗 小型LINKボタン集 -->
-    <div id="home-links" class="home-links-grid"></div>
-  </div>
-
-  <!-- ================= 設定画面 ================= -->
-  <div id="settings-view" class="view hidden">
-    <div class="card">
-      <div class="settings-header">
-        <span class="settings-title">設定</span>
-        <button class="settings-btn" onclick="showHome()">閉じる</button>
+    <!-- ==================== 設定ビュー ==================== -->
+    <div id="settings-view" class="card hidden">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="font-size: 18px;">⚙️ 設定</h2>
+        <button class="btn" onclick="showHome()">完了</button>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">パスワード設定</label>
-        <input type="password" id="cfg-password" class="input" placeholder="新しいパスワード（空欄の場合は変更なし）">
+      <!-- 基本デザイン・テキスト -->
+      <div class="settings-section">
+        <div class="section-title">基本設定</div>
+        <input type="password" id="cfg-password" class="input" placeholder="管理パスワード変更 (任意)" style="margin-bottom: 8px;">
+        <input type="text" id="cfg-header-text" class="input" placeholder="ヘッダータイトル" style="margin-bottom: 8px;">
+        <input type="color" id="cfg-bg-color" class="input" style="height: 40px; margin-bottom: 8px;" onchange="applyStylesAndText()">
+        <input type="text" id="cfg-notice" class="input" placeholder="電光掲示板のお知らせ" style="margin-bottom: 8px;">
       </div>
 
-      <!-- 🎲 カスタマイズおみくじ管理 -->
-      <div class="form-group" style="background: rgba(0,0,0,0.02); padding: 10px; border-radius: 10px;">
-        <label class="form-label">🎲 クラスおみくじの管理（レア度＆内容）</label>
-        <div id="omikuji-editor-list"></div>
-        <button class="add-btn" style="margin-top:6px;" onclick="addOmikujiItem()">＋ おみくじを追加</button>
+      <!-- 背景・バナー画像設定 -->
+      <div class="settings-section">
+        <div class="section-title">画像カスタマイズ</div>
+        <label style="font-size: 12px; color: #666;">背景画像:</label>
+        <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+          <input type="file" id="cfg-bg-file" accept="image/*" class="input" onchange="handleFileSelect(event)">
+          <button class="del-btn" onclick="clearBgImage()">削除</button>
+        </div>
+        <label style="font-size: 12px; color: #666;">バナー画像:</label>
+        <div style="display: flex; gap: 6px;">
+          <input type="file" id="cfg-banner-file" accept="image/*" class="input" onchange="handleBannerFileSelect(event)">
+          <button class="del-btn" onclick="clearBannerImage()">削除</button>
+        </div>
       </div>
 
-      <!-- ⏳ カウントダウン管理 -->
-      <div class="form-group" style="background: rgba(0,0,0,0.02); padding: 10px; border-radius: 10px;">
-        <label class="form-label">⏳ イベントカウントダウン</label>
+      <!-- 休日楽曲設定 -->
+      <div class="settings-section">
+        <div class="section-title">🎵 休日のおすすめ楽曲設定</div>
+        <input type="text" id="cfg-song-title" class="input" placeholder="曲名" style="margin-bottom: 6px;">
+        <input type="text" id="cfg-song-artist" class="input" placeholder="アーティスト名" style="margin-bottom: 6px;">
+        <input type="text" id="cfg-song-url" class="input" placeholder="楽曲URL (YouTubeなど)">
+      </div>
+
+      <!-- 時間割日程タグ ＆ 時間割編集 -->
+      <div class="settings-section">
+        <div class="section-title">時間割日程タグ編集</div>
+        <div id="date-select-bar" class="date-chip-bar"></div>
+        <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <span id="current-tag-text" style="font-size: 13px; font-weight: 600;"></span>
+          <button class="btn" style="padding: 4px 10px; font-size: 11px;" onclick="openTagModal()">タグ変更</button>
+        </div>
+        <div id="schedule-editor"></div>
+      </div>
+
+      <!-- カウントダウン管理 -->
+      <div class="settings-section">
+        <div class="section-title">⏳ カウントダウン管理</div>
         <div id="event-editor-list"></div>
-        <button class="add-btn" style="margin-top:6px;" onclick="addEventItem()">＋ イベントを追加</button>
+        <button class="btn" style="width: 100%; margin-top: 6px;" onclick="addEventItem()">+ 追加</button>
       </div>
 
-      <!-- 🎵 休日曲共有設定 -->
-      <div class="form-group" style="background: rgba(0,0,0,0.02); padding: 10px; border-radius: 10px;">
-        <label class="form-label">🎵 休日限定・共有ソング設定</label>
-        <input type="text" id="cfg-song-title" class="input" placeholder="曲名（例: Bling-Bang-Bang-Born）" style="margin-bottom:6px;">
-        <input type="text" id="cfg-song-artist" class="input" placeholder="アーティスト名（例: Creepy Nuts）" style="margin-bottom:6px;">
-        <input type="text" id="cfg-song-url" class="input" placeholder="YouTube/SpotifyのURL（任意）">
-      </div>
-
-      <!-- 📢 縦長広告バナー -->
-      <div class="form-group" style="background: rgba(0,0,0,0.02); padding: 10px; border-radius: 10px;">
-        <label class="form-label">📢 部活・イベント縦長広告バナー</label>
-        <div class="file-input-wrapper">
-          <input type="file" id="cfg-banner-file" accept="image/*" class="input" onchange="handleBannerFileSelect(event)" style="flex: 1;">
-          <button type="button" class="del-btn" onclick="clearBannerImage()">✕ 解除</button>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">ヘッダー表示テキスト</label>
-        <input type="text" id="cfg-header-text" class="input" placeholder="例: 3年A組 / 本日の目標 など">
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">背景色</label>
-        <input type="color" id="cfg-bg-color" value="#fbfbfd" style="width: 100%; height: 38px; border: none; cursor: pointer; border-radius: 8px;">
-      </div>
-      
-      <div class="form-group">
-        <label class="form-label">背景画像設定</label>
-        <div class="file-input-wrapper">
-          <input type="file" id="cfg-bg-file" accept="image/*" class="input" onchange="handleFileSelect(event)" style="flex: 1;">
-          <button type="button" class="del-btn" onclick="clearBgImage()">✕ 解除</button>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">流れるお知らせ（掲示板）</label>
-        <input type="text" id="cfg-notice" class="input" placeholder="連絡事項を入力">
-      </div>
-
-      <!-- 時間割とタグ -->
-      <div class="form-group">
-        <label class="form-label">時間割の管理（8日分）</label>
-        <div id="date-select-bar" class="date-select-bar"></div>
-        
-        <div class="tag-select-container">
-          <div style="font-size:0.85rem; font-weight:600; color:var(--sub);" id="current-tag-text">タグ: 設定なし</div>
-          <button type="button" class="tag-display-btn" onclick="openTagModal()">🏷️ タグを選択</button>
-        </div>
-
-        <div id="schedule-editor" class="schedule-editor-grid"></div>
-      </div>
-
-      <!-- 📝 提出物・課題の管理 (月・日選択式) -->
-      <div class="form-group">
-        <label class="form-label">📝 提出物・課題の管理</label>
+      <!-- 提出物管理（月・日ドロップダウン） -->
+      <div class="settings-section">
+        <div class="section-title">📝 提出物管理</div>
         <div id="submission-editor-list"></div>
-        <button class="add-btn" onclick="addSubmissionItem()">＋ 提出物を追加</button>
+        <button class="btn" style="width: 100%; margin-top: 6px;" onclick="addSubmissionItem()">+ 追加</button>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">LINK設定</label>
+      <!-- 外部リンク管理 -->
+      <div class="settings-section">
+        <div class="section-title">🔗 外部リンク管理</div>
         <div id="link-editor-list"></div>
-        <button class="add-btn" onclick="addLinkItem()">＋ リンクを追加</button>
+        <button class="btn" style="width: 100%; margin-top: 6px;" onclick="addLinkItem()">+ 追加</button>
       </div>
 
-      <button class="save-btn" onclick="saveSettings()">設定を保存して全員に共有</button>
+      <!-- 🎲 おみくじ設定（一番下・アコーディオン展開） -->
+      <div class="settings-section" style="margin-top: 24px;">
+        <div class="accordion-header" onclick="toggleOmikujiAccordion()">
+          <span>🎲 おみくじ設定</span>
+          <span id="omi-accordion-icon">▼</span>
+        </div>
+        <div id="omikuji-accordion-content" class="hidden" style="margin-top: 12px;">
+          <div id="omikuji-editor-list"></div>
+          <button class="btn" style="width: 100%; margin-top: 6px;" onclick="addOmikujiItem()">+ おみくじ項目を追加</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- モーダル類 -->
-  <div id="auth-modal" class="modal" onclick="closeAuthModal()">
-    <div class="modal-box" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <div style="font-weight:700; font-size:1.1rem;">パスワード入力</div>
-        <button class="modal-close-btn" onclick="closeAuthModal()">✕</button>
-      </div>
-      <input type="password" id="pwd-input" class="input" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter') verifyPassword()">
-      <button class="save-btn" onclick="verifyPassword()">認証</button>
+  <!-- パスワードモーダル -->
+  <div id="auth-modal" class="card hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 320px; z-index: 100; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+    <div style="font-weight: 700; margin-bottom: 8px;">パスワード入力</div>
+    <input type="password" id="pwd-input" class="input" style="margin-bottom: 12px;">
+    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+      <button class="btn" style="background: #ccc;" onclick="closeAuthModal()">キャンセル</button>
+      <button class="btn" onclick="verifyPassword()">解除</button>
     </div>
   </div>
 
-  <div id="tag-modal" class="modal" onclick="closeTagModal()">
-    <div class="modal-box" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <div style="font-weight:700; font-size:1.1rem;">🏷️ タグ一覧・選択</div>
-        <button class="modal-close-btn" onclick="closeTagModal()">✕</button>
-      </div>
-      <div id="tag-list-chips" class="tag-list-chips"></div>
-      <div style="display:flex; gap:6px; margin-top:8px;">
-        <input type="text" id="new-tag-input" class="input" placeholder="新しいタグ名（例: 行事）" style="flex:1;">
-        <button class="add-btn" style="white-space:nowrap; padding:8px 12px;" onclick="addNewTag()">追加</button>
-      </div>
-    </div>
+  <!-- 時間割日程タグ選択モーダル -->
+  <div id="tag-modal" class="card hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 360px; z-index: 100; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+    <div style="font-weight: 700; margin-bottom: 12px;">時間割日程タグの選択</div>
+    <div id="tag-list-chips" style="margin-bottom: 12px;"></div>
+    <input type="text" id="new-tag-input" class="input" placeholder="新しいタグ名（例: 行事）" style="margin-bottom: 8px;">
+    <button class="btn" style="width: 100%; margin-bottom: 12px;" onclick="addNewTag()">タグを追加して適用</button>
+    <button class="btn" style="width: 100%; background: #ccc;" onclick="closeTagModal()">閉じる</button>
   </div>
 
   <script>
-    const SUPABASE_URL = "https://kvlruwtidwvopfsphnqc.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2bHJ1d3RpZHd2b3Bmc3BobnFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzMjkxNzUsImV4cCI6MjEwNjkwNTE3NX0.Iqc7ezCNKaU68UmgBOEsETdQjZHgbhKXOx6mK0utvBk";
-
+    // --- マスター認証・Supabase連携 ---
+    const _0x9b = 'admin123';
+    let SUPABASE_URL = '';
+    let SUPABASE_KEY = '';
     let supabaseClient = null;
-    try {
-      if (window.supabase && typeof window.supabase.createClient === 'function') {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      }
-    } catch(e) { console.error("Supabase Error:", e); }
 
-    const days = ['日', '月', '火', '水', '木', '金', '土'];
-    const _0x9b = atob('eXVtaXJpbWE=');
+    if (SUPABASE_URL && SUPABASE_KEY && window.supabase) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
 
-    let portalData = { headerText: '', bgColor: '#fbfbfd', notice: 'お知らせはありません', customPassword: '' };
-    let eventsData = [{ title: '定期テスト', date: '' }];
-    let holidaySong = { title: '', artist: '', url: '' };
-    let linksData = [{ label: 'Link 1', url: '' }, { label: 'Link 2', url: '' }, { label: 'Link 3', url: '' }, { label: 'Link 4', url: '' }];
-    let submissionsData = []; 
-    let customTags = ['休み', '定期テスト']; 
-    let selectedImageBase64 = '';
-    let selectedBannerBase64 = '';
+    // --- アプリデータ構造 ---
+    let portalData = { headerText: 'クラスポータル', notice: '連絡事項はありません', bgColor: '#fbfbfd', customPassword: '' };
     let scheduleData = {};
-    let currentHomeOffset = 0;
-    let currentCdIndex = 0;
-    let selectedEditDateKey = '';
-
-    // カスタマイズ可能なデフォルトおみくじリスト
+    let eventsData = [];
+    let submissionsData = [];
+    let linksData = [];
+    let customTags = ['通常', '45分日課', '行事', '休み'];
+    let holidaySong = { title: '', artist: '', url: '' };
     let omikujiList = [
-      { rarity: '🌸 大吉', title: '小テストで満点！', desc: '自信を持って臨もう。先生にも褒められるかも！' },
-      { rarity: '☀️ 中吉', desc: '休み時間においしいお菓子がもらえる予感。', title: '平和な一日' },
-      { rarity: '☘️ 小吉', desc: '消しゴムを忘れても隣の人が親切に貸してくれる日。', title: 'ちょっとラッキー' },
-      { rarity: '💥 凶', desc: '授業中急に当てられるかも！教科書のページを開いておこう。', title: '油断大敵' }
+      { rarity: '🌸 大吉', title: '小テスト満点！', desc: '最高の1日になります', color: '#ff2d55' },
+      { rarity: '☀️ 吉', title: '提出物バッチリ', desc: '良いことがあります', color: '#ff9500' },
+      { rarity: '🍀 幸運', title: 'ラッキーデイ', desc: '友達と楽しく過ごせそう', color: '#34c759' }
     ];
 
-    async function fetchAllFromSupabase() {
-      try {
-        if (supabaseClient) {
-          const { data, error } = await supabaseClient.from('settings').select('*');
-          if (!error && data && data.length > 0) {
-            const config = {};
-            data.forEach(item => { config[item.key] = item.value; });
+    let selectedImageBase64 = '';
+    let selectedBannerBase64 = '';
+    let currentHomeOffset = (new Date().getHours() >= 18) ? 1 : 0;
+    let selectedEditDateKey = '';
+    let currentCdIndex = 0;
+    let lastThreadPostTime = 0;
 
-            portalData.headerText = config.header_text || '';
-            portalData.bgColor = config.bg_color || '#fbfbfd';
-            portalData.notice = config.notice || 'お知らせはありません';
-            portalData.customPassword = config.custom_password || '';
-            selectedImageBase64 = config.bg_img_file || '';
-            selectedBannerBase64 = config.banner_img_file || '';
-
-            if (config.event_list) { try { eventsData = JSON.parse(config.event_list); } catch(e){} }
-            if (config.holiday_song) { try { holidaySong = JSON.parse(config.holiday_song); } catch(e){} }
-            if (config.schedules) { try { scheduleData = JSON.parse(config.schedules); } catch(e){} }
-            if (config.links) { try { linksData = JSON.parse(config.links); } catch(e){} }
-            if (config.submissions) { try { submissionsData = JSON.parse(config.submissions); } catch(e){} }
-            if (config.custom_tags) { try { customTags = JSON.parse(config.custom_tags); } catch(e){} }
-            if (config.omikuji_list) { try { omikujiList = JSON.parse(config.omikuji_list); } catch(e){} }
-          }
-        }
-      } catch (err) { console.error('通信エラー:', err); }
-      finally {
-        cleanAndMaintainSchedules();
-        applyStylesAndText();
-        renderHomeSchedule();
-        renderHomeSubmissions();
-        renderHomeLinks();
-        checkOmikujiStatus();
-      }
+    // --- 日付ユーティリティ ---
+    function getDateObj(offset) { const d = new Date(); d.setDate(d.getDate() + offset); return d; }
+    function formatDateKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+    function formatDateLabel(d, offset) {
+      const days = ['日', '月', '火', '水', '木', '金', '土'];
+      const prefix = offset === 0 ? '本日' : offset === 1 ? '明日' : `${d.getMonth() + 1}/${d.getDate()}`;
+      return `${prefix} (${days[d.getDay()]})`;
     }
 
-    async function saveSettings() {
-      if (!supabaseClient) { alert("❌ Supabase未接続"); return; }
-
-      captureScheduleEditorInputs();
-
-      const newPwd = document.getElementById('cfg-password').value.trim();
-      const headerText = document.getElementById('cfg-header-text').value.trim();
-      const bgColor = document.getElementById('cfg-bg-color').value;
-      const notice = document.getElementById('cfg-notice').value.trim();
-
-      // おみくじデータ収集
-      const omiItems = document.querySelectorAll('.omi-edit-item');
-      omikujiList = [];
-      omiItems.forEach(item => {
-        const rarity = item.querySelector('.omi-rarity').value.trim();
-        const title = item.querySelector('.omi-title').value.trim();
-        const desc = item.querySelector('.omi-desc').value.trim();
-        if (rarity || title || desc) omikujiList.push({ rarity: rarity || '吉', title: title || 'おみくじ', desc });
-      });
-
-      // カウントダウン収集
-      const evtItems = document.querySelectorAll('.evt-edit-item');
-      eventsData = [];
-      evtItems.forEach(item => {
-        const title = item.querySelector('.evt-title').value.trim();
-        const date = item.querySelector('.evt-date').value;
-        if (title || date) eventsData.push({ title: title || 'イベント', date });
-      });
-
-      // 曲共有収集
-      holidaySong = {
-        title: document.getElementById('cfg-song-title').value.trim(),
-        artist: document.getElementById('cfg-song-artist').value.trim(),
-        url: document.getElementById('cfg-song-url').value.trim()
-      };
-
-      // 提出物収集（月・日）
-      const subItems = document.querySelectorAll('.sub-edit-item');
-      submissionsData = [];
-      subItems.forEach(item => {
-        const title = item.querySelector('.sub-title').value.trim();
-        const month = item.querySelector('.sub-month').value;
-        const day = item.querySelector('.sub-day').value;
-        const detail = item.querySelector('.sub-detail').value.trim();
-        if (title || month || day || detail) {
-          submissionsData.push({ title: title || '課題', month, day, detail });
-        }
-      });
-
-      // リンク収集
-      const linkItems = document.querySelectorAll('.link-edit-item');
-      linksData = [];
-      linkItems.forEach(item => {
-        const label = item.querySelector('.link-lbl').value.trim();
-        const url = item.querySelector('.link-url').value.trim();
-        if (label || url) linksData.push({ label: label || 'Link', url });
-      });
-
-      const updates = [
-        { key: 'header_text', value: headerText },
-        { key: 'bg_color', value: bgColor },
-        { key: 'bg_img_file', value: selectedImageBase64 },
-        { key: 'banner_img_file', value: selectedBannerBase64 },
-        { key: 'notice', value: notice },
-        { key: 'event_list', value: JSON.stringify(eventsData) },
-        { key: 'holiday_song', value: JSON.stringify(holidaySong) },
-        { key: 'schedules', value: JSON.stringify(scheduleData) },
-        { key: 'submissions', value: JSON.stringify(submissionsData) },
-        { key: 'links', value: JSON.stringify(linksData) },
-        { key: 'custom_tags', value: JSON.stringify(customTags) },
-        { key: 'omikuji_list', value: JSON.stringify(omikujiList) }
-      ];
-
-      if (newPwd) updates.push({ key: 'custom_password', value: newPwd });
-
-      const { error } = await supabaseClient.from('settings').upsert(updates, { onConflict: 'key' });
-
-      if (error) { alert("❌ 保存失敗: " + error.message); }
-      else {
-        alert("☁️ 設定を保存しました！");
-        await fetchAllFromSupabase();
-        showHome();
-      }
-    }
-
-    function getDateObj(offsetDays = 0) { const d = new Date(); d.setDate(d.getDate() + offsetDays); return d; }
-    function formatDateKey(dateObj) { return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
-
-    function formatDateLabel(dateObj, offset) {
-      const m = dateObj.getMonth() + 1; const d = dateObj.getDate(); const w = days[dateObj.getDay()];
-      let tag = offset === 0 ? '今日' : offset === 1 ? '明日' : offset === 7 ? '来週' : '';
-      return `${m}/${d}(${w}) ${tag}`.trim();
-    }
-
-    function cleanAndMaintainSchedules() {
-      const validKeys = [];
-      for (let i = 0; i <= 7; i++) {
-        const key = formatDateKey(getDateObj(i)); validKeys.push(key);
-        if (!scheduleData[key]) scheduleData[key] = { tag: '' };
-        for (let p = 1; p <= 7; p++) { if (!scheduleData[key][p]) scheduleData[key][p] = { sub: '', det: '' }; }
-      }
-      Object.keys(scheduleData).forEach(k => { if (!validKeys.includes(k)) delete scheduleData[k]; });
-    }
-
-    function updateClock() {
-      const now = new Date();
-      document.getElementById('date').textContent = `${now.getMonth()+1}月${now.getDate()}日 (${days[now.getDay()]})`;
-      document.getElementById('time').textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    }
-
+    // --- 時間割 ＆ 休日スレッド描画 ---
     function renderHomeSchedule() {
       const targetDate = getDateObj(currentHomeOffset);
       const key = formatDateKey(targetDate);
@@ -600,36 +483,49 @@
       const currentTag = dayData.tag || '';
 
       document.getElementById('schedule-target-label').textContent = formatDateLabel(targetDate, currentHomeOffset);
-
       const tagLabelHead = document.getElementById('schedule-tag-label-head');
-      const tagLabelDate = document.getElementById('schedule-tag-label-date');
+      
       if (currentTag) {
-        tagLabelHead.textContent = `#${currentTag}`;
-        tagLabelDate.textContent = `#${currentTag}`;
+        tagLabelHead.textContent = `時間割日程タグ: #${currentTag}`;
         tagLabelHead.classList.remove('hidden');
-        tagLabelDate.classList.remove('hidden');
       } else {
         tagLabelHead.classList.add('hidden');
-        tagLabelDate.classList.add('hidden');
       }
 
       const container = document.getElementById('schedule-list-container');
       container.innerHTML = '';
-      for (let p = 1; p <= 7; p++) {
-        const pData = dayData[p] || { sub: '', det: '' };
-        const hasData = pData.sub || pData.det;
-        const row = document.createElement('div');
-        row.className = `slot-row ${hasData ? '' : 'empty'}`;
-        row.innerHTML = `
-          <div class="slot-num">${p}限</div>
-          <div class="slot-subject">${pData.sub || '-'}</div>
-          <div class="slot-detail">${pData.det || ''}</div>
+
+      // 休日タグの場合は時間割枠を「みんなの一言スレッド」に切り替え
+      if (currentTag === '休み') {
+        const threadBox = document.createElement('div');
+        threadBox.innerHTML = `
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: var(--accent-color);">💬 休日の一言スレッド</div>
+          <div id="thread-list-${key}" class="thread-container">読み込み中...</div>
+          <div class="thread-form">
+            <input type="text" id="thread-input-${key}" class="input" placeholder="一言書き込む (最大100文字)" maxlength="100">
+            <button class="btn" onclick="postThreadComment('${key}')">送信</button>
+          </div>
         `;
-        container.appendChild(row);
+        container.appendChild(threadBox);
+        loadThreadComments(key);
+      } else {
+        for (let p = 1; p <= 7; p++) {
+          const pData = dayData[p] || { sub: '', det: '' };
+          const hasData = pData.sub || pData.det;
+          const row = document.createElement('div');
+          row.className = `slot-row ${hasData ? '' : 'empty'}`;
+          row.innerHTML = `
+            <div class="slot-num">${p}限</div>
+            <div class="slot-subject">${pData.sub || '-'}</div>
+            <div class="slot-detail">${pData.det || ''}</div>
+          `;
+          container.appendChild(row);
+        }
       }
 
       renderScheduleDots();
 
+      // 休日ソングカード表示判定
       const songCard = document.getElementById('holiday-song-card');
       if (currentTag === '休み' && (holidaySong.title || holidaySong.artist)) {
         document.getElementById('song-display-title').textContent = holidaySong.title || '楽曲名未設定';
@@ -647,8 +543,83 @@
       } else {
         songCard.classList.add('hidden');
       }
+
+      updateOmikujiDisplay();
     }
 
+    // --- Supabase安全機構付きスレッド機能 ---
+    async function loadThreadComments(dateKey) {
+      const container = document.getElementById(`thread-list-${dateKey}`);
+      if (!container) return;
+
+      if (supabaseClient) {
+        // 安全機構: 最新50件のみ取得
+        const { data, error } = await supabaseClient
+          .from('threads')
+          .select('*')
+          .eq('date_key', dateKey)
+          .order('created_at', { ascending: true })
+          .limit(50);
+
+        if (!error && data) {
+          renderThreadItems(container, data);
+          return;
+        }
+      }
+      const localData = JSON.parse(localStorage.getItem(`threads_${dateKey}`) || '[]');
+      renderThreadItems(container, localData);
+    }
+
+    function renderThreadItems(container, items) {
+      if (items.length === 0) {
+        container.innerHTML = '<div style="color:#999; font-size:12px; text-align:center; padding:16px;">まだ投稿はありません</div>';
+        return;
+      }
+      container.innerHTML = items.map(item => `
+        <div class="thread-item">
+          <div>${escapeHTML(item.text)}</div>
+          <div class="thread-time">${new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+        </div>
+      `).join('');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function postThreadComment(dateKey) {
+      const input = document.getElementById(`thread-input-${dateKey}`);
+      if (!input) return;
+      const val = input.value.trim();
+      if (!val) return;
+
+      // 安全機構 1: 連投ガード (5秒間)
+      const now = Date.now();
+      if (now - lastThreadPostTime < 5000) {
+        alert('連続投稿は少し時間を置いてから行ってください。');
+        return;
+      }
+      lastThreadPostTime = now;
+
+      // 安全機構 2: 文字数制限100文字
+      const cleanText = val.slice(0, 100);
+      const newComment = { date_key: dateKey, text: cleanText, created_at: new Date().toISOString() };
+
+      if (supabaseClient) {
+        await supabaseClient.from('threads').insert([newComment]);
+      } else {
+        const localData = JSON.parse(localStorage.getItem(`threads_${dateKey}`) || '[]');
+        localData.push(newComment);
+        if (localData.length > 50) localData.shift(); // 安全機構 3: 50件超過を削除
+        localStorage.setItem(`threads_${dateKey}`, JSON.stringify(localData));
+      }
+
+      input.value = '';
+      loadThreadComments(dateKey);
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+
+    // --- iOS風滑らかスライド ＆ ドット制御 ---
     function renderScheduleDots() {
       const dotsContainer = document.getElementById('sched-dots-container');
       dotsContainer.innerHTML = '';
@@ -665,6 +636,83 @@
     function prevHomeOffset() { if (currentHomeOffset > 0) { currentHomeOffset--; renderHomeSchedule(); } }
     function nextHomeOffset() { if (currentHomeOffset < 7) { currentHomeOffset++; renderHomeSchedule(); } }
 
+    let touchStartX = 0, touchEndX = 0;
+    const sliderOuter = document.getElementById('sched-slider-outer');
+    sliderOuter.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+    sliderOuter.addEventListener('touchend', e => {
+      touchEndX = e.changedTouches[0].screenX;
+      if (touchStartX - touchEndX > 40) nextHomeOffset();
+      else if (touchEndX - touchStartX > 40) prevHomeOffset();
+    }, {passive: true});
+
+    // --- おみくじ機能 (完全連動・パチッパチッネオン光演出) ---
+    function updateOmikujiDisplay() {
+      const todayStr = formatDateKey(new Date());
+      const savedDate = localStorage.getItem('omikuji_date');
+      const miniBtn = document.getElementById('omikuji-mini-btn');
+      const tickerText = document.getElementById('ticker-text');
+
+      if (savedDate === todayStr) {
+        miniBtn.classList.add('hidden');
+        const resTitle = localStorage.getItem('omikuji_res') || '';
+        const resRarity = localStorage.getItem('omikuji_rarity') || '';
+        const resColor = localStorage.getItem('omikuji_color') || '#ff2d55';
+
+        tickerText.innerHTML = `<span class="neon-text" style="--neon-color: ${resColor};">[一日おみくじ] ${resRarity} ${resTitle}</span> | ${portalData.notice || ''}`;
+      } else {
+        miniBtn.classList.remove('hidden');
+        tickerText.textContent = portalData.notice || 'お知らせはありません';
+      }
+    }
+
+    function drawOmikuji() {
+      if (!omikujiList || omikujiList.length === 0) {
+        alert('おみくじの項目が設定されていません');
+        return;
+      }
+      const todayStr = formatDateKey(new Date());
+      const item = omikujiList[Math.floor(Math.random() * omikujiList.length)];
+
+      localStorage.setItem('omikuji_date', todayStr);
+      localStorage.setItem('omikuji_rarity', item.rarity || '吉');
+      localStorage.setItem('omikuji_res', item.title || '運勢最高！');
+      localStorage.setItem('omikuji_color', item.color || '#ff2d55');
+
+      updateOmikujiDisplay();
+    }
+
+    function toggleOmikujiAccordion() {
+      const content = document.getElementById('omikuji-accordion-content');
+      const icon = document.getElementById('omi-accordion-icon');
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.textContent = '▲';
+      } else {
+        content.classList.add('hidden');
+        icon.textContent = '▼';
+      }
+    }
+
+    function renderOmikujiEditor() {
+      const container = document.getElementById('omikuji-editor-list');
+      container.innerHTML = '';
+      omikujiList.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'edit-item-row';
+        div.innerHTML = `
+          <input type="text" class="input omi-rarity" value="${item.rarity || ''}" placeholder="レア度 (例: 🌸 大吉)" style="flex:1; min-width:110px;">
+          <input type="text" class="input omi-title" value="${item.title || ''}" placeholder="結果" style="flex:1.2; min-width:120px;">
+          <input type="color" class="input omi-color" value="${item.color || '#ff2d55'}" style="width:40px; padding:2px; height:36px; cursor:pointer;">
+          <button class="del-btn" onclick="removeOmikujiItem(${idx})">削除</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function addOmikujiItem() { omikujiList.push({ rarity: '🌸 大吉', title: '超ラッキー！', color: '#ff2d55' }); renderOmikujiEditor(); }
+    function removeOmikujiItem(idx) { omikujiList.splice(idx, 1); renderOmikujiEditor(); }
+
+    // --- カウントダウン描画 ---
     function renderCountdowns() {
       const card = document.getElementById('countdown-card');
       const wrap = document.getElementById('countdown-slide-wrap');
@@ -712,21 +760,14 @@
       if (index < 0) index = 0;
       if (index >= eventsData.length) index = eventsData.length - 1;
       currentCdIndex = index;
-      
-      const wrap = document.getElementById('countdown-slide-wrap');
-      wrap.style.transform = `translateX(-${currentCdIndex * 100}%)`;
 
       const dots = document.querySelectorAll('#cd-dots-container .insta-dot');
       dots.forEach((d, i) => d.classList.toggle('active', i === currentCdIndex));
-
-      document.getElementById('cd-prev-btn').disabled = (currentCdIndex === 0);
-      document.getElementById('cd-next-btn').disabled = (currentCdIndex === eventsData.length - 1);
     }
-
     function prevCdSlide() { setCdIndex(currentCdIndex - 1); }
     function nextCdSlide() { setCdIndex(currentCdIndex + 1); }
 
-    // 📝 提出物描画（「明日提出」判定）
+    // --- 提出物描画（明日締め切り判定） ---
     function renderHomeSubmissions() {
       const urgentCard = document.getElementById('urgent-submission-card');
       const urgentContainer = document.getElementById('urgent-submission-list');
@@ -744,7 +785,6 @@
       const tomorrowObj = getDateObj(1);
       const tMonth = String(tomorrowObj.getMonth() + 1);
       const tDay = String(tomorrowObj.getDate());
-      
       let hasUrgent = false;
 
       submissionsData.forEach(item => {
@@ -759,7 +799,6 @@
         `;
         allContainer.appendChild(row);
 
-        // 明日締め切りの判定
         if (item.month === tMonth && item.day === tDay) {
           hasUrgent = true;
           const uRow = row.cloneNode(true);
@@ -771,11 +810,11 @@
       else urgentCard.classList.add('hidden');
     }
 
+    // --- デザイン・画像適用 ---
     function applyStylesAndText() {
-      document.getElementById('header-custom-display').textContent = portalData.headerText || '';
+      document.getElementById('header-custom-display').textContent = portalData.headerText || 'クラスポータル';
       document.body.style.backgroundColor = portalData.bgColor || '#fbfbfd';
       document.body.style.backgroundImage = selectedImageBase64 ? `url('${selectedImageBase64}')` : 'none';
-      document.getElementById('ticker-text').textContent = portalData.notice || 'お知らせはありません';
 
       const bannerCard = document.getElementById('banner-card');
       if (selectedBannerBase64) {
@@ -786,54 +825,10 @@
       }
 
       renderCountdowns();
+      updateOmikujiDisplay();
     }
 
-    // 🎲 おみくじ（端末内1日1回判定）
-    function checkOmikujiStatus() {
-      const todayStr = formatDateKey(new Date());
-      const savedDate = localStorage.getItem('omikuji_date');
-      const btn = document.getElementById('omikuji-btn');
-      const rarity = document.getElementById('omikuji-rarity');
-      const res = document.getElementById('omikuji-result');
-      const desc = document.getElementById('omikuji-desc');
-
-      if (savedDate === todayStr) {
-        btn.textContent = '本日のおみくじ引換済み';
-        btn.disabled = true;
-        btn.style.opacity = '0.6';
-        rarity.textContent = localStorage.getItem('omikuji_rarity') || '';
-        res.textContent = localStorage.getItem('omikuji_res') || '';
-        desc.textContent = localStorage.getItem('omikuji_desc') || '';
-        rarity.classList.remove('hidden');
-        res.classList.remove('hidden');
-        desc.classList.remove('hidden');
-      } else {
-        btn.textContent = 'おみくじを引く！';
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        rarity.classList.add('hidden');
-        res.classList.add('hidden');
-        desc.classList.add('hidden');
-      }
-    }
-
-    function drawOmikuji() {
-      if (!omikujiList || omikujiList.length === 0) {
-        alert('おみくじの項目が設定されていません');
-        return;
-      }
-
-      const todayStr = formatDateKey(new Date());
-      const item = omikujiList[Math.floor(Math.random() * omikujiList.length)];
-
-      localStorage.setItem('omikuji_date', todayStr);
-      localStorage.setItem('omikuji_rarity', item.rarity || '吉');
-      localStorage.setItem('omikuji_res', item.title || '本日の運勢');
-      localStorage.setItem('omikuji_desc', item.desc || '');
-
-      checkOmikujiStatus();
-    }
-
+    // --- 画像圧縮ロジック ---
     function compressImage(file, callback) {
       const reader = new FileReader();
       reader.onload = function(evt) {
@@ -859,6 +854,7 @@
     function handleBannerFileSelect(e) { if (e.target.files[0]) compressImage(e.target.files[0], res => { selectedBannerBase64 = res; applyStylesAndText(); }); }
     function clearBannerImage() { selectedBannerBase64 = ''; document.getElementById('cfg-banner-file').value = ''; applyStylesAndText(); }
 
+    // --- 天気予報取得 ---
     function fetchWeather() {
       fetch('https://api.open-meteo.com/v1/forecast?latitude=33.5904&longitude=130.4017&current=temperature_2m,weather_code')
         .then(r => r.json()).then(d => {
@@ -870,8 +866,9 @@
         }).catch(() => {});
     }
 
-    function openAuthModal() { document.getElementById('pwd-input').value = ''; document.getElementById('auth-modal').classList.add('active'); }
-    function closeAuthModal() { document.getElementById('auth-modal').classList.remove('active'); }
+    // --- パスワード認証 ＆ 設定連携 ---
+    function openAuthModal() { document.getElementById('pwd-input').value = ''; document.getElementById('auth-modal').classList.remove('hidden'); }
+    function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
     function verifyPassword() {
       const input = document.getElementById('pwd-input').value;
       if ((portalData.customPassword && input === portalData.customPassword) || input === _0x9b) {
@@ -882,6 +879,7 @@
     function showSettings() {
       document.getElementById('home-view').classList.add('hidden');
       document.getElementById('settings-view').classList.remove('hidden');
+
       document.getElementById('cfg-password').value = '';
       document.getElementById('cfg-header-text').value = portalData.headerText || '';
       document.getElementById('cfg-bg-color').value = portalData.bgColor || '#fbfbfd';
@@ -893,7 +891,7 @@
 
       const validKeys = []; for (let i = 0; i <= 7; i++) validKeys.push(formatDateKey(getDateObj(i)));
       if (!selectedEditDateKey || !validKeys.includes(selectedEditDateKey)) selectedEditDateKey = formatDateKey(getDateObj(currentHomeOffset));
-      
+
       renderDateSelectBar();
       renderOmikujiEditor();
       renderEventEditor();
@@ -901,8 +899,34 @@
       renderLinkEditor();
     }
 
-    function showHome() { document.getElementById('settings-view').classList.add('hidden'); document.getElementById('home-view').classList.remove('hidden'); renderHomeSchedule(); renderHomeSubmissions(); }
+    function showHome() {
+      const newPwd = document.getElementById('cfg-password').value.trim();
+      if (newPwd) portalData.customPassword = newPwd;
 
+      portalData.headerText = document.getElementById('cfg-header-text').value;
+      portalData.bgColor = document.getElementById('cfg-bg-color').value;
+      portalData.notice = document.getElementById('cfg-notice').value;
+
+      holidaySong.title = document.getElementById('cfg-song-title').value.trim();
+      holidaySong.artist = document.getElementById('cfg-song-artist').value.trim();
+      holidaySong.url = document.getElementById('cfg-song-url').value.trim();
+
+      captureScheduleEditorInputs();
+      captureOmikujiInputs();
+      captureSubmissionInputs();
+      captureLinkInputs();
+
+      saveAllToSupabase();
+
+      document.getElementById('settings-view').classList.add('hidden');
+      document.getElementById('home-view').classList.remove('hidden');
+      applyStylesAndText();
+      renderHomeSchedule();
+      renderHomeSubmissions();
+      renderHomeLinks();
+    }
+
+    // --- 各種エディタ ＆ キャプチャ ---
     function renderDateSelectBar() {
       const bar = document.getElementById('date-select-bar'); bar.innerHTML = '';
       for (let i = 0; i <= 7; i++) {
@@ -919,14 +943,13 @@
     function renderScheduleEditor() {
       const container = document.getElementById('schedule-editor'); container.innerHTML = '';
       const dayData = scheduleData[selectedEditDateKey] || {};
-
       const curTag = dayData.tag || '';
-      document.getElementById('current-tag-text').textContent = curTag ? `タグ: #${curTag}` : 'タグ: 設定なし';
+      document.getElementById('current-tag-text').textContent = curTag ? `時間割日程タグ: #${curTag}` : '時間割日程タグ: 設定なし';
 
       for (let p = 1; p <= 7; p++) {
         const pData = dayData[p] || { sub: '', det: '' };
-        const row = document.createElement('div'); row.className = 'period-edit-row';
-        row.innerHTML = `<span class="period-tag">${p}限</span><input type="text" class="input p-sub" data-p="${p}" value="${pData.sub || ''}" placeholder="教科名" style="flex:1;"><input type="text" class="input p-det" data-p="${p}" value="${pData.det || ''}" placeholder="詳細" style="flex:1.5;">`;
+        const row = document.createElement('div'); row.className = 'edit-item-row';
+        row.innerHTML = `<span style="width:36px; font-weight:700;">${p}限</span><input type="text" class="input p-sub" data-p="${p}" value="${pData.sub || ''}" placeholder="教科" style="flex:1;"><input type="text" class="input p-det" data-p="${p}" value="${pData.det || ''}" placeholder="詳細" style="flex:1.5;">`;
         container.appendChild(row);
       }
     }
@@ -938,42 +961,100 @@
       document.querySelectorAll('.p-det').forEach(input => { const p = input.getAttribute('data-p'); if (!scheduleData[selectedEditDateKey][p]) scheduleData[selectedEditDateKey][p] = {}; scheduleData[selectedEditDateKey][p].det = input.value.trim(); });
     }
 
-    // 🎲 おみくじエディタ
-    function renderOmikujiEditor() {
-      const container = document.getElementById('omikuji-editor-list'); container.innerHTML = '';
-      omikujiList.forEach((item, idx) => {
-        const div = document.createElement('div'); div.className = 'edit-item-row omi-edit-item';
-        div.innerHTML = `
-          <input type="text" class="input omi-rarity" value="${item.rarity || ''}" placeholder="レア度 (例: 🌸 大吉 / SSR)" style="flex:1; min-width:110px;">
-          <input type="text" class="input omi-title" value="${item.title || ''}" placeholder="タイトル (例: 小テスト満点)" style="flex:1.2; min-width:130px;">
-          <input type="text" class="input omi-desc" value="${item.desc || ''}" placeholder="解説メッセージ" style="flex:2; min-width:180px;">
-          <button class="del-btn" onclick="removeOmikujiItem(${idx})">削除</button>
-        `;
-        container.appendChild(div);
+    function captureOmikujiInputs() {
+      const rarities = document.querySelectorAll('.omi-rarity');
+      const titles = document.querySelectorAll('.omi-title');
+      const colors = document.querySelectorAll('.omi-color');
+      omikujiList = [];
+      rarities.forEach((el, i) => {
+        if (el.value.trim() || titles[i].value.trim()) {
+          omikujiList.push({ rarity: el.value.trim(), title: titles[i].value.trim(), color: colors[i].value });
+        }
       });
     }
-    function addOmikujiItem() { omikujiList.push({ rarity: '吉', title: '', desc: '' }); renderOmikujiEditor(); }
-    function removeOmikujiItem(idx) { omikujiList.splice(idx, 1); renderOmikujiEditor(); }
 
-    // ⏳ カウントダウンエディタ
     function renderEventEditor() {
       const container = document.getElementById('event-editor-list'); container.innerHTML = '';
       eventsData.forEach((evt, idx) => {
-        const div = document.createElement('div'); div.className = 'edit-item-row evt-edit-item';
-        div.innerHTML = `
-          <input type="text" class="input evt-title" value="${evt.title || ''}" placeholder="イベント名" style="flex:1.2;">
-          <input type="date" class="input evt-date" value="${evt.date || ''}" style="flex:1;">
-          <button class="del-btn" onclick="removeEventItem(${idx})">削除</button>
-        `;
+        const div = document.createElement('div'); div.className = 'edit-item-row';
+        div.innerHTML = `<input type="text" class="input evt-title" value="${evt.title || ''}" placeholder="イベント名" style="flex:1.2;"><input type="date" class="input evt-date" value="${evt.date || ''}" style="flex:1;"><button class="del-btn" onclick="removeEventItem(${idx})">削除</button>`;
         container.appendChild(div);
       });
     }
     function addEventItem() { eventsData.push({ title: '', date: '' }); renderEventEditor(); }
     function removeEventItem(idx) { eventsData.splice(idx, 1); renderEventEditor(); }
 
-    // 🏷️ タグ管理
-    function openTagModal() { renderTagChips(); document.getElementById('tag-modal').classList.add('active'); }
-    function closeTagModal() { document.getElementById('tag-modal').classList.remove('active'); }
+    function renderSubmissionEditor() {
+      const container = document.getElementById('submission-editor-list'); container.innerHTML = '';
+      let monthOptions = '<option value="">月</option>';
+      for (let m = 1; m <= 12; m++) monthOptions += `<option value="${m}">${m}月</option>`;
+      let dayOptions = '<option value="">日</option>';
+      for (let d = 1; d <= 31; d++) dayOptions += `<option value="${d}">${d}日</option>`;
+
+      submissionsData.forEach((item, index) => {
+        const div = document.createElement('div'); div.className = 'edit-item-row';
+        div.innerHTML = `
+          <input type="text" class="input sub-title" value="${item.title || ''}" placeholder="教科・課題名" style="flex:1; min-width:110px;">
+          <div style="display:flex; gap:4px; align-items:center;">
+            <select class="select sub-month">${monthOptions}</select>
+            <select class="select sub-day">${dayOptions}</select>
+          </div>
+          <input type="text" class="input sub-detail" value="${item.detail || ''}" placeholder="詳細・範囲" style="flex:1.5; min-width:130px;">
+          <button class="del-btn" onclick="removeSubmissionItem(${index})">削除</button>
+        `;
+        if (item.month) div.querySelector('.sub-month').value = item.month;
+        if (item.day) div.querySelector('.sub-day').value = item.day;
+        container.appendChild(div);
+      });
+    }
+    function addSubmissionItem() { submissionsData.push({ title: '', month: '', day: '', detail: '' }); renderSubmissionEditor(); }
+    function removeSubmissionItem(index) { submissionsData.splice(index, 1); renderSubmissionEditor(); }
+
+    function captureSubmissionInputs() {
+      const titles = document.querySelectorAll('.sub-title');
+      const months = document.querySelectorAll('.sub-month');
+      const days = document.querySelectorAll('.sub-day');
+      const details = document.querySelectorAll('.sub-detail');
+      submissionsData = [];
+      titles.forEach((el, i) => {
+        if (el.value.trim()) {
+          submissionsData.push({ title: el.value.trim(), month: months[i].value, day: days[i].value, detail: details[i].value.trim() });
+        }
+      });
+    }
+
+    function renderLinkEditor() {
+      const container = document.getElementById('link-editor-list'); container.innerHTML = '';
+      linksData.forEach((item, index) => {
+        const div = document.createElement('div'); div.className = 'edit-item-row';
+        div.innerHTML = `<input type="text" class="input link-lbl" value="${item.label}" placeholder="表示名" style="flex:1;"><input type="text" class="input link-url" value="${item.url}" placeholder="URL" style="flex:2;"><button class="del-btn" onclick="removeLinkItem(${index})">削除</button>`;
+        container.appendChild(div);
+      });
+    }
+    function addLinkItem() { linksData.push({ label: '', url: '' }); renderLinkEditor(); }
+    function removeLinkItem(index) { linksData.splice(index, 1); renderLinkEditor(); }
+
+    function captureLinkInputs() {
+      const lbls = document.querySelectorAll('.link-lbl');
+      const urls = document.querySelectorAll('.link-url');
+      linksData = [];
+      lbls.forEach((el, i) => {
+        if (el.value.trim()) linksData.push({ label: el.value.trim(), url: urls[i].value.trim() });
+      });
+    }
+
+    function renderHomeLinks() {
+      const container = document.getElementById('home-links'); container.innerHTML = '';
+      linksData.forEach(item => {
+        const btn = document.createElement('div'); btn.className = 'compact-link-btn'; btn.textContent = item.label;
+        btn.onclick = () => { if (item.url) { let targetUrl = item.url.trim(); if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl; window.open(targetUrl, '_blank'); } };
+        container.appendChild(btn);
+      });
+    }
+
+    // --- タグモーダル ---
+    function openTagModal() { renderTagChips(); document.getElementById('tag-modal').classList.remove('hidden'); }
+    function closeTagModal() { document.getElementById('tag-modal').classList.add('hidden'); }
 
     function renderTagChips() {
       const container = document.getElementById('tag-list-chips'); container.innerHTML = '';
@@ -1011,63 +1092,57 @@
       }
     }
 
-    // 📝 提出物エディタ (月・日選択オプション)
-    function renderSubmissionEditor() {
-      const container = document.getElementById('submission-editor-list'); container.innerHTML = '';
-      
-      let monthOptions = '<option value="">月</option>';
-      for (let m = 1; m <= 12; m++) monthOptions += `<option value="${m}">${m}月</option>`;
-
-      let dayOptions = '<option value="">日</option>';
-      for (let d = 1; d <= 31; d++) dayOptions += `<option value="${d}">${d}日</option>`;
-
-      submissionsData.forEach((item, index) => {
-        const div = document.createElement('div'); div.className = 'edit-item-row sub-edit-item';
-        
-        const mSelect = `<select class="select sub-month">${monthOptions}</select>`;
-        const dSelect = `<select class="select sub-day">${dayOptions}</select>`;
-
-        div.innerHTML = `
-          <input type="text" class="input sub-title" value="${item.title || ''}" placeholder="教科・課題名" style="flex:1; min-width:110px;">
-          <div style="display:flex; gap:4px; align-items:center;">
-            ${mSelect}
-            ${dSelect}
-          </div>
-          <input type="text" class="input sub-detail" value="${item.detail || ''}" placeholder="詳細・範囲など" style="flex:1.5; min-width:140px;">
-          <button class="del-btn" onclick="removeSubmissionItem(${index})">削除</button>
-        `;
-
-        if (item.month) div.querySelector('.sub-month').value = item.month;
-        if (item.day) div.querySelector('.sub-day').value = item.day;
-
-        container.appendChild(div);
-      });
-    }
-    function addSubmissionItem() { submissionsData.push({ title: '', month: '', day: '', detail: '' }); renderSubmissionEditor(); }
-    function removeSubmissionItem(index) { submissionsData.splice(index, 1); renderSubmissionEditor(); }
-
-    function renderLinkEditor() {
-      const container = document.getElementById('link-editor-list'); container.innerHTML = '';
-      linksData.forEach((item, index) => {
-        const div = document.createElement('div'); div.className = 'edit-item-row link-edit-item';
-        div.innerHTML = `<input type="text" class="input link-lbl" value="${item.label}" placeholder="表示名" style="flex:1;"><input type="text" class="input link-url" value="${item.url}" placeholder="URL" style="flex:2;"><button class="del-btn" onclick="removeLinkItem(${index})">削除</button>`;
-        container.appendChild(div);
-      });
-    }
-    function addLinkItem() { linksData.push({ label: '', url: '' }); renderLinkEditor(); }
-    function removeLinkItem(index) { linksData.splice(index, 1); renderLinkEditor(); }
-
-    function renderHomeLinks() {
-      const container = document.getElementById('home-links'); container.innerHTML = '';
-      linksData.forEach(item => {
-        const btn = document.createElement('div'); btn.className = 'compact-link-btn'; btn.textContent = item.label;
-        btn.onclick = () => { if (item.url) { let targetUrl = item.url.trim(); if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl; window.open(targetUrl, '_blank'); } };
-        container.appendChild(btn);
-      });
+    // --- Supabase / LocalStorage 永続化 ---
+    async function fetchAllFromSupabase() {
+      if (supabaseClient) {
+        const { data } = await supabaseClient.from('portal_config').select('*').eq('id', 'main_config').single();
+        if (data && data.content) {
+          const c = data.content;
+          portalData = c.portalData || portalData;
+          scheduleData = c.scheduleData || scheduleData;
+          eventsData = c.eventsData || eventsData;
+          submissionsData = c.submissionsData || submissionsData;
+          linksData = c.linksData || linksData;
+          customTags = c.customTags || customTags;
+          holidaySong = c.holidaySong || holidaySong;
+          omikujiList = c.omikujiList || omikujiList;
+          selectedImageBase64 = c.selectedImageBase64 || '';
+          selectedBannerBase64 = c.selectedBannerBase64 || '';
+        }
+      } else {
+        const local = localStorage.getItem('portal_full_data');
+        if (local) {
+          const c = JSON.parse(local);
+          portalData = c.portalData || portalData;
+          scheduleData = c.scheduleData || scheduleData;
+          eventsData = c.eventsData || eventsData;
+          submissionsData = c.submissionsData || submissionsData;
+          linksData = c.linksData || linksData;
+          customTags = c.customTags || customTags;
+          holidaySong = c.holidaySong || holidaySong;
+          omikujiList = c.omikujiList || omikujiList;
+          selectedImageBase64 = c.selectedImageBase64 || '';
+          selectedBannerBase64 = c.selectedBannerBase64 || '';
+        }
+      }
+      applyStylesAndText();
+      renderHomeSchedule();
+      renderHomeSubmissions();
+      renderHomeLinks();
     }
 
-    currentHomeOffset = (new Date().getHours() >= 18) ? 1 : 0;
-    updateClock(); setInterval(updateClock, 1000); fetchWeather();
+    async function saveAllToSupabase() {
+      const payload = {
+        portalData, scheduleData, eventsData, submissionsData, linksData, customTags, holidaySong, omikujiList, selectedImageBase64, selectedBannerBase64
+      };
+      if (supabaseClient) {
+        await supabaseClient.from('portal_config').upsert({ id: 'main_config', content: payload });
+      }
+      localStorage.setItem('portal_full_data', JSON.stringify(payload));
+    }
+
+    // --- アプリ起動初期化 ---
+    fetchWeather();
     fetchAllFromSupabase();
   </script>
 </body>
