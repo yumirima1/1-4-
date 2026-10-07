@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>1−4 案内箱</title>
 
+
   <!-- ☁️ Supabase ライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 
   <style>
     :root {
@@ -22,7 +24,9 @@
       --accent-purple: #af52de;
     }
 
+
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
 
     body {
       background-color: var(--bg);
@@ -37,8 +41,10 @@
       -webkit-font-smoothing: antialiased;
     }
 
+
     .view { display: flex; flex-direction: column; gap: clamp(10px, 1.8vw, 16px); width: 100%; }
-    .hidden { display: none !important; }
+    .hidden, [hidden] { display: none !important; }
+
 
     /* すりガラスカード */
     .card {
@@ -51,9 +57,11 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.03);
     }
 
+
     /* トップエリア */
     .top-section-container { display: flex; gap: 10px; align-items: stretch; width: 100%; }
     .top-left-group { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
 
     .banner-card {
       width: 115px; flex-shrink: 0; padding: 0; overflow: hidden;
@@ -61,19 +69,23 @@
     }
     .banner-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+
     /* ヘッダー */
     .status-bar { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 10px 12px; }
     .header-left { display: flex; flex-direction: column; flex-shrink: 0; }
     .date { font-size: clamp(0.72rem, 1vw, 0.85rem); color: var(--sub); font-weight: 500; }
     .time { font-size: clamp(1.5rem, 3.2vw, 2.2rem); font-weight: 700; line-height: 1; letter-spacing: -0.03em; }
 
+
     .header-center { flex: 1; text-align: center; padding: 0 2px; overflow: hidden; }
     .header-custom-text { font-size: clamp(0.72rem, 1vw, 0.9rem); font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 
     .header-right { display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 4px; flex-shrink: 0; }
     .weather { font-size: clamp(0.68rem, 0.9vw, 0.78rem); color: var(--sub); background: rgba(0,0,0,0.04); padding: 3px 8px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
     .settings-btn { background: rgba(0,0,0,0.05); border: none; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-size: clamp(0.72rem, 0.95vw, 0.82rem); color: var(--text); font-weight: 600; transition: background 0.2s; white-space: nowrap; }
     .settings-btn:active { background: rgba(0,0,0,0.12); }
+
 
     /* 明日提出・緊急提出物カード */
     .urgent-submission-card {
@@ -81,6 +93,7 @@
       border: 1px solid rgba(255, 59, 48, 0.2);
     }
     .urgent-header { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 700; color: var(--accent-red); margin-bottom: 8px; }
+
 
     /* カウントダウン（インスタ風） */
     .insta-countdown-container { position: relative; overflow: hidden; border-radius: var(--radius); }
@@ -91,6 +104,7 @@
     .countdown-label { font-size: 0.75rem; font-weight: 600; color: var(--sub); }
     .countdown-num { font-size: 1.4rem; font-weight: 800; color: var(--accent-red); }
 
+
     .insta-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
     .insta-arrow { background: rgba(0,0,0,0.05); border: none; width: 26px; height: 26px; border-radius: 13px; cursor: pointer; font-size: 0.75rem; font-weight: bold; color: var(--text); display: flex; align-items: center; justify-content: center; }
     .insta-arrow:disabled { opacity: 0.2; cursor: default; }
@@ -98,10 +112,20 @@
     .insta-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(0,0,0,0.2); transition: all 0.2s; }
     .insta-dot.active { width: 8px; height: 8px; background: var(--accent-blue); }
 
+
     /* 電光掲示板 */
     .ticker-wrap { overflow: hidden; white-space: nowrap; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; backdrop-filter: blur(16px); }
     .ticker-content { display: inline-block; padding-left: 100%; animation: marquee 15s linear infinite; font-size: clamp(0.85rem, 1.2vw, 0.95rem); font-weight: 500; color: var(--text); }
     @keyframes marquee { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+    .ticker-row { display: flex; align-items: center; gap: 8px; }
+    .ticker-row .ticker-wrap { flex: 1; min-width: 0; }
+    .ticker-omikuji-btn { flex: 0 0 auto; border: 0; border-radius: 10px; padding: 8px 10px; color: #fff; background: var(--text); font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+    .ticker-wrap.neon { box-shadow: 0 0 8px var(--neon-color), 0 0 18px var(--neon-color); }
+    .ticker-content.neon { text-shadow: 0 0 5px var(--neon-color), 0 0 14px var(--neon-color); }
+    .ticker-wrap.flicker { animation: neon-flicker 900ms ease-out both; }
+    @keyframes neon-flicker { 0%, 12%, 24% { opacity: .35; } 8%, 20%, 38%, 100% { opacity: 1; } 10%, 22% { opacity: .55; } }
+    @media (prefers-reduced-motion: reduce) { .ticker-content { animation: none; padding-left: 0; } .ticker-wrap.flicker { animation: none; } }
+
 
     /* 時間割 */
     .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
@@ -110,28 +134,30 @@
     .schedule-badge { font-size: 0.78rem; background: var(--text); color: #fff; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
     .schedule-tag-badge { font-size: 0.78rem; background: rgba(0, 122, 255, 0.12); color: var(--accent-blue); padding: 3px 10px; border-radius: 12px; font-weight: 700; border: 1px solid rgba(0, 122, 255, 0.2); }
 
+
     .schedule-list { display: flex; flex-direction: column; gap: 6px; }
+    .schedule-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; touch-action: pan-y; }
+    .schedule-track::-webkit-scrollbar { display: none; }
+    .schedule-day-slide { flex: 0 0 100%; min-width: 100%; scroll-snap-align: center; scroll-snap-stop: always; padding: 1px; }
+    .thread-form { display: flex; gap: 6px; margin-bottom: 10px; }
+    .thread-form .input { min-width: 0; flex: 1; }
+    .thread-form button { flex: 0 0 auto; border: 0; border-radius: 9px; padding: 0 12px; background: var(--accent-blue); color: white; font-weight: 700; }
+    .thread-form button:disabled { opacity: .5; }
+    .thread-list { display: flex; flex-direction: column; gap: 7px; max-height: 300px; overflow-y: auto; }
+    .thread-post { padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.04); }
+    .thread-post p { margin-top: 3px; overflow-wrap: anywhere; }
+    .thread-meta { font-size: .72rem; color: var(--sub); }
+    .thread-refresh { margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 5px 9px; background: rgba(0,0,0,.03); color: var(--text); font-weight: 600; }
+    @media (prefers-reduced-motion: reduce) { .schedule-track { scroll-behavior: auto; } }
     .slot-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(0, 0, 0, 0.03); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03); }
     .slot-row.empty { opacity: 0.45; background: transparent; }
     .slot-num { font-size: 0.75rem; font-weight: 700; color: var(--sub); width: 28px; flex-shrink: 0; }
     .slot-subject { font-size: 0.9rem; font-weight: 700; color: var(--text); width: 110px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .slot-detail { font-size: 0.78rem; color: var(--sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* 休日曲共有 */
-    .holiday-song-card { background: linear-gradient(135deg, rgba(175, 82, 222, 0.08), rgba(0, 122, 255, 0.08)); border: 1px solid rgba(175, 82, 222, 0.2); }
-    .song-title-head { font-size: 0.9rem; font-weight: 700; color: var(--accent-purple); display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-    .song-box { display: flex; flex-direction: column; gap: 4px; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 12px; }
-    .song-name { font-weight: 700; font-size: 0.95rem; }
-    .song-artist { font-size: 0.78rem; color: var(--sub); }
-    .song-link-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; color: var(--accent-blue); text-decoration: none; font-weight: 600; margin-top: 4px; }
 
-    /* 1日1回おみくじ */
-    .omikuji-card { text-align: center; padding: 16px; background: linear-gradient(135deg, rgba(255, 204, 0, 0.12), rgba(255, 149, 0, 0.08)); border: 1px solid rgba(255, 149, 0, 0.2); }
-    .omikuji-btn { background: linear-gradient(135deg, #ff9500, #ff2d55); color: #fff; border: none; padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 45, 85, 0.25); transition: transform 0.1s; }
-    .omikuji-btn:active { transform: scale(0.96); }
-    .omikuji-rarity { font-size: 0.8rem; font-weight: 800; color: var(--accent-orange); text-transform: uppercase; margin-top: 8px; }
-    .omikuji-result { font-size: 1.15rem; font-weight: 800; color: var(--text); margin-top: 2px; }
-    .omikuji-desc { font-size: 0.8rem; color: var(--sub); margin-top: 4px; font-weight: 500; }
+    .song-title-head { font-size: 0.9rem; font-weight: 700; color: var(--accent-purple); display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+
 
     /* 提出物UI */
     .submission-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(0, 0, 0, 0.03); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03); }
@@ -139,9 +165,11 @@
     .submission-date { font-size: 0.73rem; font-weight: 700; color: var(--accent-red); background: rgba(255, 59, 48, 0.1); padding: 3px 8px; border-radius: 6px; flex-shrink: 0; white-space: nowrap; }
     .submission-detail { font-size: 0.78rem; color: var(--sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+
     /* LINK */
     .home-links-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .compact-link-btn { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: clamp(8px, 1.2vw, 12px) 4px; font-size: clamp(0.72rem, 1vw, 0.82rem); font-weight: 600; color: var(--text); text-align: center; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 
     /* 設定画面 */
     .settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -151,21 +179,26 @@
     .input, .select { padding: 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.9rem; background: rgba(245, 245, 247, 0.8); outline: none; }
     .file-input-wrapper { display: flex; gap: 8px; align-items: center; }
 
+
     .date-select-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; scrollbar-width: none; }
     .date-chip { flex: 0 0 auto; padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border); font-size: 0.78rem; font-weight: 600; background: #fff; cursor: pointer; color: var(--sub); }
     .date-chip.selected { background: var(--text); color: #fff; border-color: var(--text); }
 
+
     .tag-select-container { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 10px; }
     .tag-display-btn { background: var(--text); color: #fff; border: none; padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+
 
     .schedule-editor-grid { display: flex; flex-direction: column; gap: 8px; }
     .period-edit-row { display: flex; gap: 6px; align-items: center; }
     .period-tag { font-size: 0.75rem; font-weight: 700; width: 32px; color: var(--sub); flex-shrink: 0; }
 
+
     .edit-item-row { display: flex; gap: 6px; align-items: center; background: rgba(249, 249, 251, 0.8); padding: 8px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 6px; flex-wrap: wrap; }
     .del-btn { background: var(--accent-red); color: #fff; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
     .add-btn { background: #34c759; color: #fff; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
     .save-btn { background: var(--text); color: #fff; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+
 
     /* モーダル */
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 1000; }
@@ -174,6 +207,7 @@
     .modal-header { display: flex; justify-content: space-between; align-items: center; }
     .modal-close-btn { background: rgba(0,0,0,0.06); border: none; font-size: 1.1rem; width: 30px; height: 30px; border-radius: 15px; cursor: pointer; color: var(--sub); font-weight: bold; display: flex; align-items: center; justify-content: center; }
 
+
     .tag-list-chips { display: flex; flex-wrap: wrap; gap: 8px; max-height: 180px; overflow-y: auto; padding: 4px; }
     .tag-chip-item { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: #fff; font-size: 0.85rem; font-weight: 600; color: var(--text); cursor: pointer; }
     .tag-chip-item.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
@@ -181,8 +215,10 @@
 </head>
 <body>
 
+
   <!-- ================= ホーム画面 ================= -->
   <div id="home-view" class="view">
+
 
     <!-- トップコンテナ -->
     <div class="top-section-container">
@@ -193,15 +229,18 @@
             <div id="time" class="time">00:00</div>
           </div>
 
+
           <div class="header-center">
             <div id="header-custom-display" class="header-custom-text"></div>
           </div>
+
 
           <div class="header-right">
             <div id="weather" class="weather">福岡 --°C</div>
             <button class="settings-btn" onclick="openAuthModal()">設定</button>
           </div>
         </header>
+
 
         <!-- 🚨 「明日提出」緊急提出物カード（カウントダウンの上に配置） -->
         <div id="urgent-submission-card" class="card urgent-submission-card hidden">
@@ -210,6 +249,7 @@
           </div>
           <div id="urgent-submission-list" class="schedule-list"></div>
         </div>
+
 
         <!-- ⏳ カウントダウン（インスタ風スライド） -->
         <div id="countdown-card" class="card hidden">
@@ -224,16 +264,22 @@
         </div>
       </div>
 
+
       <!-- 縦長広告バナー -->
       <div id="banner-card" class="card banner-card hidden">
         <img id="banner-img" class="banner-img" src="" alt="広告バナー">
       </div>
     </div>
 
+
     <!-- 電光掲示板 -->
-    <div class="ticker-wrap">
-      <div id="ticker-text" class="ticker-content">お知らせはありません</div>
+    <div class="ticker-row">
+      <div class="ticker-wrap">
+        <div id="ticker-text" class="ticker-content">お知らせはありません</div>
+      </div>
+      <button id="ticker-omikuji-btn" class="ticker-omikuji-btn" onclick="drawOmikuji()">一日おみくじ</button>
     </div>
+
 
     <!-- 📅 時間割 -->
     <div class="card">
@@ -246,7 +292,8 @@
         </div>
       </div>
       
-      <div id="schedule-list-container" class="schedule-list"></div>
+      <div id="schedule-list-container" class="schedule-track"></div>
+
 
       <div class="insta-nav">
         <button id="sched-prev-btn" class="insta-arrow" onclick="prevHomeOffset()">◀</button>
@@ -255,26 +302,6 @@
       </div>
     </div>
 
-    <!-- 🎵 休みの日の曲共有カード -->
-    <div id="holiday-song-card" class="card holiday-song-card hidden">
-      <div class="song-title-head">
-        <span>🎵 休日限定・みんなの好きな曲</span>
-      </div>
-      <div class="song-box">
-        <div id="song-display-title" class="song-name">楽曲未設定</div>
-        <div id="song-display-artist" class="song-artist">アーティスト名</div>
-        <a id="song-display-link" href="#" target="_blank" class="song-link-btn hidden">▶ 曲を聴く・動画を見る</a>
-      </div>
-    </div>
-
-    <!-- 🎲 1日1回おみくじ -->
-    <div class="card omikuji-card">
-      <div style="font-size:0.85rem; font-weight:700; color:var(--sub); margin-bottom:6px;">🎲 本日の学校おみくじ (1日1回)</div>
-      <button id="omikuji-btn" class="omikuji-btn" onclick="drawOmikuji()">おみくじを引く！</button>
-      <div id="omikuji-rarity" class="omikuji-rarity hidden"></div>
-      <div id="omikuji-result" class="omikuji-result hidden"></div>
-      <div id="omikuji-desc" class="omikuji-desc hidden"></div>
-    </div>
 
     <!-- 📝 全提出物一覧 -->
     <div id="submissions-card" class="card hidden">
@@ -286,9 +313,11 @@
       <div id="submissions-list-container" class="schedule-list"></div>
     </div>
 
+
     <!-- 🔗 小型LINKボタン集 -->
     <div id="home-links" class="home-links-grid"></div>
   </div>
+
 
   <!-- ================= 設定画面 ================= -->
   <div id="settings-view" class="view hidden">
@@ -298,17 +327,12 @@
         <button class="settings-btn" onclick="showHome()">閉じる</button>
       </div>
 
+
       <div class="form-group">
         <label class="form-label">パスワード設定</label>
         <input type="password" id="cfg-password" class="input" placeholder="新しいパスワード（空欄の場合は変更なし）">
       </div>
 
-      <!-- 🎲 カスタマイズおみくじ管理 -->
-      <div class="form-group" style="background: rgba(0,0,0,0.02); padding: 10px; border-radius: 10px;">
-        <label class="form-label">🎲 クラスおみくじの管理（レア度＆内容）</label>
-        <div id="omikuji-editor-list"></div>
-        <button class="add-btn" style="margin-top:6px;" onclick="addOmikujiItem()">＋ おみくじを追加</button>
-      </div>
 
       <!-- ⏳ カウントダウン管理 -->
       <div class="form-group" style="background: rgba(0,0,0,0.02); padding: 10px; border-radius: 10px;">
@@ -317,13 +341,6 @@
         <button class="add-btn" style="margin-top:6px;" onclick="addEventItem()">＋ イベントを追加</button>
       </div>
 
-      <!-- 🎵 休日曲共有設定 -->
-      <div class="form-group" style="background: rgba(0,0,0,0.02); padding: 10px; border-radius: 10px;">
-        <label class="form-label">🎵 休日限定・共有ソング設定</label>
-        <input type="text" id="cfg-song-title" class="input" placeholder="曲名（例: Bling-Bang-Bang-Born）" style="margin-bottom:6px;">
-        <input type="text" id="cfg-song-artist" class="input" placeholder="アーティスト名（例: Creepy Nuts）" style="margin-bottom:6px;">
-        <input type="text" id="cfg-song-url" class="input" placeholder="YouTube/SpotifyのURL（任意）">
-      </div>
 
       <!-- 📢 縦長広告バナー -->
       <div class="form-group" style="background: rgba(0,0,0,0.02); padding: 10px; border-radius: 10px;">
@@ -334,10 +351,12 @@
         </div>
       </div>
 
+
       <div class="form-group">
         <label class="form-label">ヘッダー表示テキスト</label>
         <input type="text" id="cfg-header-text" class="input" placeholder="例: 3年A組 / 本日の目標 など">
       </div>
+
 
       <div class="form-group">
         <label class="form-label">背景色</label>
@@ -352,10 +371,12 @@
         </div>
       </div>
 
+
       <div class="form-group">
         <label class="form-label">流れるお知らせ（掲示板）</label>
         <input type="text" id="cfg-notice" class="input" placeholder="連絡事項を入力">
       </div>
+
 
       <!-- 時間割とタグ -->
       <div class="form-group">
@@ -363,12 +384,14 @@
         <div id="date-select-bar" class="date-select-bar"></div>
         
         <div class="tag-select-container">
-          <div style="font-size:0.85rem; font-weight:600; color:var(--sub);" id="current-tag-text">タグ: 設定なし</div>
+          <div style="font-size:0.85rem; font-weight:600; color:var(--sub);" id="current-tag-text">時間割日程タグ: 設定なし</div>
           <button type="button" class="tag-display-btn" onclick="openTagModal()">🏷️ タグを選択</button>
         </div>
 
+
         <div id="schedule-editor" class="schedule-editor-grid"></div>
       </div>
+
 
       <!-- 📝 提出物・課題の管理 (月・日選択式) -->
       <div class="form-group">
@@ -377,6 +400,7 @@
         <button class="add-btn" onclick="addSubmissionItem()">＋ 提出物を追加</button>
       </div>
 
+
       <div class="form-group">
         <label class="form-label">LINK設定</label>
         <div id="link-editor-list"></div>
@@ -384,8 +408,22 @@
       </div>
 
       <button class="save-btn" onclick="saveSettings()">設定を保存して全員に共有</button>
+
+      <details id="omikuji-admin-panel" class="form-group">
+        <summary class="form-label" style="cursor:pointer;">🎲 おみくじ管理</summary>
+        <div id="omikuji-admin-status" class="form-label">管理者アカウントでログインしてください。</div>
+        <div id="omikuji-admin-login" class="file-input-wrapper">
+          <input type="email" id="admin-email" class="input" placeholder="管理者メールアドレス" autocomplete="username">
+          <input type="password" id="admin-password" class="input" placeholder="パスワード" autocomplete="current-password">
+          <button type="button" class="add-btn" onclick="adminSignIn()">ログイン</button>
+        </div>
+        <div id="omikuji-admin-list"></div>
+        <button id="omikuji-add-btn" type="button" class="add-btn" onclick="addAdminOmikujiItem()" hidden>＋ おみくじを追加</button>
+        <button id="admin-signout-btn" type="button" class="settings-btn" onclick="adminSignOut()" hidden>ログアウト</button>
+      </details>
     </div>
   </div>
+
 
   <!-- モーダル類 -->
   <div id="auth-modal" class="modal" onclick="closeAuthModal()">
@@ -398,6 +436,7 @@
       <button class="save-btn" onclick="verifyPassword()">認証</button>
     </div>
   </div>
+
 
   <div id="tag-modal" class="modal" onclick="closeTagModal()">
     <div class="modal-box" onclick="event.stopPropagation()">
@@ -413,9 +452,11 @@
     </div>
   </div>
 
+
   <script>
     const SUPABASE_URL = "https://kvlruwtidwvopfsphnqc.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2bHJ1d3RpZHd2b3Bmc3BobnFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzMjkxNzUsImV4cCI6MjEwNjkwNTE3NX0.Iqc7ezCNKaU68UmgBOEsETdQjZHgbhKXOx6mK0utvBk";
+
 
     let supabaseClient = null;
     try {
@@ -424,12 +465,13 @@
       }
     } catch(e) { console.error("Supabase Error:", e); }
 
+
     const days = ['日', '月', '火', '水', '木', '金', '土'];
     const _0x9b = atob('eXVtaXJpbWE=');
 
+
     let portalData = { headerText: '', bgColor: '#fbfbfd', notice: 'お知らせはありません', customPassword: '' };
     let eventsData = [{ title: '定期テスト', date: '' }];
-    let holidaySong = { title: '', artist: '', url: '' };
     let linksData = [{ label: 'Link 1', url: '' }, { label: 'Link 2', url: '' }, { label: 'Link 3', url: '' }, { label: 'Link 4', url: '' }];
     let submissionsData = []; 
     let customTags = ['休み', '定期テスト']; 
@@ -440,13 +482,14 @@
     let currentCdIndex = 0;
     let selectedEditDateKey = '';
 
-    // カスタマイズ可能なデフォルトおみくじリスト
-    let omikujiList = [
-      { rarity: '🌸 大吉', title: '小テストで満点！', desc: '自信を持って臨もう。先生にも褒められるかも！' },
-      { rarity: '☀️ 中吉', desc: '休み時間においしいお菓子がもらえる予感。', title: '平和な一日' },
-      { rarity: '☘️ 小吉', desc: '消しゴムを忘れても隣の人が親切に貸してくれる日。', title: 'ちょっとラッキー' },
-      { rarity: '💥 凶', desc: '授業中急に当てられるかも！教科書のページを開いておこう。', title: '油断大敵' }
-    ];
+
+    const THREAD_COOLDOWN_MS = 20000;
+    const THREAD_CACHE_MS = 60000;
+    const threadCache = new Map();
+    let adminUserId = null;
+    let midnightTimer = null;
+    let scheduleScrollTimer = null;
+
 
     async function fetchAllFromSupabase() {
       try {
@@ -456,6 +499,7 @@
             const config = {};
             data.forEach(item => { config[item.key] = item.value; });
 
+
             portalData.headerText = config.header_text || '';
             portalData.bgColor = config.bg_color || '#fbfbfd';
             portalData.notice = config.notice || 'お知らせはありません';
@@ -463,13 +507,12 @@
             selectedImageBase64 = config.bg_img_file || '';
             selectedBannerBase64 = config.banner_img_file || '';
 
+
             if (config.event_list) { try { eventsData = JSON.parse(config.event_list); } catch(e){} }
-            if (config.holiday_song) { try { holidaySong = JSON.parse(config.holiday_song); } catch(e){} }
             if (config.schedules) { try { scheduleData = JSON.parse(config.schedules); } catch(e){} }
             if (config.links) { try { linksData = JSON.parse(config.links); } catch(e){} }
             if (config.submissions) { try { submissionsData = JSON.parse(config.submissions); } catch(e){} }
             if (config.custom_tags) { try { customTags = JSON.parse(config.custom_tags); } catch(e){} }
-            if (config.omikuji_list) { try { omikujiList = JSON.parse(config.omikuji_list); } catch(e){} }
           }
         }
       } catch (err) { console.error('通信エラー:', err); }
@@ -479,29 +522,23 @@
         renderHomeSchedule();
         renderHomeSubmissions();
         renderHomeLinks();
-        checkOmikujiStatus();
+        restoreDailyOmikuji();
       }
     }
+
 
     async function saveSettings() {
       if (!supabaseClient) { alert("❌ Supabase未接続"); return; }
 
+
       captureScheduleEditorInputs();
+
 
       const newPwd = document.getElementById('cfg-password').value.trim();
       const headerText = document.getElementById('cfg-header-text').value.trim();
       const bgColor = document.getElementById('cfg-bg-color').value;
       const notice = document.getElementById('cfg-notice').value.trim();
 
-      // おみくじデータ収集
-      const omiItems = document.querySelectorAll('.omi-edit-item');
-      omikujiList = [];
-      omiItems.forEach(item => {
-        const rarity = item.querySelector('.omi-rarity').value.trim();
-        const title = item.querySelector('.omi-title').value.trim();
-        const desc = item.querySelector('.omi-desc').value.trim();
-        if (rarity || title || desc) omikujiList.push({ rarity: rarity || '吉', title: title || 'おみくじ', desc });
-      });
 
       // カウントダウン収集
       const evtItems = document.querySelectorAll('.evt-edit-item');
@@ -512,12 +549,6 @@
         if (title || date) eventsData.push({ title: title || 'イベント', date });
       });
 
-      // 曲共有収集
-      holidaySong = {
-        title: document.getElementById('cfg-song-title').value.trim(),
-        artist: document.getElementById('cfg-song-artist').value.trim(),
-        url: document.getElementById('cfg-song-url').value.trim()
-      };
 
       // 提出物収集（月・日）
       const subItems = document.querySelectorAll('.sub-edit-item');
@@ -532,6 +563,7 @@
         }
       });
 
+
       // リンク収集
       const linkItems = document.querySelectorAll('.link-edit-item');
       linksData = [];
@@ -541,6 +573,7 @@
         if (label || url) linksData.push({ label: label || 'Link', url });
       });
 
+
       const updates = [
         { key: 'header_text', value: headerText },
         { key: 'bg_color', value: bgColor },
@@ -548,17 +581,18 @@
         { key: 'banner_img_file', value: selectedBannerBase64 },
         { key: 'notice', value: notice },
         { key: 'event_list', value: JSON.stringify(eventsData) },
-        { key: 'holiday_song', value: JSON.stringify(holidaySong) },
         { key: 'schedules', value: JSON.stringify(scheduleData) },
         { key: 'submissions', value: JSON.stringify(submissionsData) },
         { key: 'links', value: JSON.stringify(linksData) },
         { key: 'custom_tags', value: JSON.stringify(customTags) },
-        { key: 'omikuji_list', value: JSON.stringify(omikujiList) }
       ];
+
 
       if (newPwd) updates.push({ key: 'custom_password', value: newPwd });
 
+
       const { error } = await supabaseClient.from('settings').upsert(updates, { onConflict: 'key' });
+
 
       if (error) { alert("❌ 保存失敗: " + error.message); }
       else {
@@ -568,14 +602,18 @@
       }
     }
 
+
     function getDateObj(offsetDays = 0) { const d = new Date(); d.setDate(d.getDate() + offsetDays); return d; }
-    function formatDateKey(dateObj) { return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
+    function formatDateKey(dateObj) { return `${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
+    function formatISODate(dateObj) { return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`; }
+
 
     function formatDateLabel(dateObj, offset) {
       const m = dateObj.getMonth() + 1; const d = dateObj.getDate(); const w = days[dateObj.getDay()];
       let tag = offset === 0 ? '今日' : offset === 1 ? '明日' : offset === 7 ? '来週' : '';
-      return `${m}/${d}(${w}) ${tag}`.trim();
+      return `${d}(${w}) ${tag}`.trim();
     }
+
 
     function cleanAndMaintainSchedules() {
       const validKeys = [];
@@ -587,66 +625,74 @@
       Object.keys(scheduleData).forEach(k => { if (!validKeys.includes(k)) delete scheduleData[k]; });
     }
 
+
     function updateClock() {
       const now = new Date();
-      document.getElementById('date').textContent = `${now.getMonth()+1}月${now.getDate()}日 (${days[now.getDay()]})`;
+      document.getElementById('date').textContent = `${now.getMonth() + 1}/${now.getDate()} (${days[now.getDay()]})`;
       document.getElementById('time').textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     }
 
+
     function renderHomeSchedule() {
+      const container = document.getElementById('schedule-list-container');
+      container.replaceChildren();
+      for (let offset = 0; offset <= 7; offset++) {
+        const targetDate = getDateObj(offset);
+        const dayData = scheduleData[formatDateKey(targetDate)] || {};
+        const slide = document.createElement('section');
+        slide.className = 'schedule-day-slide';
+        slide.setAttribute('aria-label', formatDateLabel(targetDate, offset));
+        if (dayData.tag === '休み') {
+          const title = document.createElement('div');
+          title.className = 'song-title-head';
+          title.textContent = '休日の一言スレッド';
+          slide.append(title);
+          const board = document.createElement('div');
+          board.className = 'thread-board';
+          slide.append(board);
+          if (offset === currentHomeOffset) renderHolidayThread(board, formatISODate(targetDate));
+        } else {
+          const list = document.createElement('div');
+          list.className = 'schedule-list';
+          for (let period = 1; period <= 7; period++) {
+            const periodData = dayData[period] || { sub: '', det: '' };
+            const hasData = periodData.sub || periodData.det;
+            const row = document.createElement('div');
+            row.className = `slot-row ${hasData ? '' : 'empty'}`;
+            const number = document.createElement('div');
+            number.className = 'slot-num';
+            number.textContent = `${period}限`;
+            const subject = document.createElement('div');
+            subject.className = 'slot-subject';
+            subject.textContent = periodData.sub || '-';
+            const detail = document.createElement('div');
+            detail.className = 'slot-detail';
+            detail.textContent = periodData.det || '';
+            row.append(number, subject, detail);
+            list.append(row);
+          }
+          slide.append(list);
+        }
+        container.append(slide);
+      }
+      requestAnimationFrame(() => {
+        container.scrollLeft = currentHomeOffset * container.clientWidth;
+        updateScheduleHeader();
+      });
+      renderScheduleDots();
+    }
+
+    function updateScheduleHeader() {
       const targetDate = getDateObj(currentHomeOffset);
-      const key = formatDateKey(targetDate);
-      const dayData = scheduleData[key] || {};
+      const dayData = scheduleData[formatDateKey(targetDate)] || {};
       const currentTag = dayData.tag || '';
-
       document.getElementById('schedule-target-label').textContent = formatDateLabel(targetDate, currentHomeOffset);
-
       const tagLabelHead = document.getElementById('schedule-tag-label-head');
       const tagLabelDate = document.getElementById('schedule-tag-label-date');
-      if (currentTag) {
-        tagLabelHead.textContent = `#${currentTag}`;
-        tagLabelDate.textContent = `#${currentTag}`;
-        tagLabelHead.classList.remove('hidden');
-        tagLabelDate.classList.remove('hidden');
-      } else {
-        tagLabelHead.classList.add('hidden');
-        tagLabelDate.classList.add('hidden');
-      }
-
-      const container = document.getElementById('schedule-list-container');
-      container.innerHTML = '';
-      for (let p = 1; p <= 7; p++) {
-        const pData = dayData[p] || { sub: '', det: '' };
-        const hasData = pData.sub || pData.det;
-        const row = document.createElement('div');
-        row.className = `slot-row ${hasData ? '' : 'empty'}`;
-        row.innerHTML = `
-          <div class="slot-num">${p}限</div>
-          <div class="slot-subject">${pData.sub || '-'}</div>
-          <div class="slot-detail">${pData.det || ''}</div>
-        `;
-        container.appendChild(row);
-      }
-
-      renderScheduleDots();
-
-      const songCard = document.getElementById('holiday-song-card');
-      if (currentTag === '休み' && (holidaySong.title || holidaySong.artist)) {
-        document.getElementById('song-display-title').textContent = holidaySong.title || '楽曲名未設定';
-        document.getElementById('song-display-artist').textContent = holidaySong.artist || 'アーティスト名未設定';
-        const linkBtn = document.getElementById('song-display-link');
-        if (holidaySong.url) {
-          let url = holidaySong.url.trim();
-          if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-          linkBtn.href = url;
-          linkBtn.classList.remove('hidden');
-        } else {
-          linkBtn.classList.add('hidden');
-        }
-        songCard.classList.remove('hidden');
-      } else {
-        songCard.classList.add('hidden');
-      }
+      tagLabelHead.textContent = '時間割日程タグ';
+      tagLabelHead.classList.toggle('hidden', !currentTag);
+      tagLabelDate.textContent = currentTag ? `#${currentTag}` : '';
+      tagLabelDate.classList.toggle('hidden', !currentTag);
     }
 
     function renderScheduleDots() {
@@ -655,27 +701,193 @@
       for (let i = 0; i <= 7; i++) {
         const dot = document.createElement('div');
         dot.className = `insta-dot ${i === currentHomeOffset ? 'active' : ''}`;
-        dot.onclick = () => { currentHomeOffset = i; renderHomeSchedule(); };
+        dot.onclick = () => goToScheduleDay(i);
         dotsContainer.appendChild(dot);
       }
       document.getElementById('sched-prev-btn').disabled = (currentHomeOffset === 0);
       document.getElementById('sched-next-btn').disabled = (currentHomeOffset === 7);
     }
 
-    function prevHomeOffset() { if (currentHomeOffset > 0) { currentHomeOffset--; renderHomeSchedule(); } }
-    function nextHomeOffset() { if (currentHomeOffset < 7) { currentHomeOffset++; renderHomeSchedule(); } }
+
+    function goToScheduleDay(offset) {
+      currentHomeOffset = Math.max(0, Math.min(7, offset));
+      document.getElementById('schedule-list-container').scrollTo({
+        left: currentHomeOffset * document.getElementById('schedule-list-container').clientWidth,
+        behavior: 'smooth'
+      });
+      updateScheduleHeader();
+      renderScheduleDots();
+      const targetDate = getDateObj(currentHomeOffset);
+      if ((scheduleData[formatDateKey(targetDate)] || {}).tag === '休み') {
+        const slide = document.querySelectorAll('.schedule-day-slide')[currentHomeOffset];
+        if (slide && !slide.querySelector('.thread-form')) renderHolidayThread(slide.querySelector('.thread-board'), formatISODate(targetDate));
+      }
+    }
+
+    function handleScheduleScroll() {
+      clearTimeout(scheduleScrollTimer);
+      scheduleScrollTimer = setTimeout(() => {
+        const track = document.getElementById('schedule-list-container');
+        const offset = Math.max(0, Math.min(7, Math.round(track.scrollLeft / Math.max(track.clientWidth, 1))));
+        if (offset === currentHomeOffset) return;
+        currentHomeOffset = offset;
+        updateScheduleHeader();
+        renderScheduleDots();
+        const targetDate = getDateObj(currentHomeOffset);
+        if ((scheduleData[formatDateKey(targetDate)] || {}).tag === '休み') {
+          const slide = document.querySelectorAll('.schedule-day-slide')[currentHomeOffset];
+          if (slide) renderHolidayThread(slide.querySelector('.thread-board'), formatISODate(targetDate));
+        }
+      }, 100);
+    }
+
+    function prevHomeOffset() { if (currentHomeOffset > 0) goToScheduleDay(currentHomeOffset - 1); }
+    function nextHomeOffset() { if (currentHomeOffset < 7) goToScheduleDay(currentHomeOffset + 1); }
+
+    async function renderHolidayThread(container, boardDate, force = false) {
+      if (!container) return;
+      const cached = threadCache.get(boardDate);
+      if (!force && cached && Date.now() - cached.time < THREAD_CACHE_MS) {
+        drawHolidayThread(container, cached.posts, boardDate);
+        return;
+      }
+      if (container.dataset.loading === boardDate) return;
+      if (!supabaseClient) {
+        container.textContent = '掲示板に接続できません。';
+        return;
+      }
+      container.dataset.loading = boardDate;
+      container.textContent = 'コメントを読み込み中…';
+      const { data, error } = await supabaseClient
+        .from('holiday_posts')
+        .select('id, nickname, message, created_at')
+        .eq('board_date', boardDate)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) {
+        delete container.dataset.loading;
+        container.textContent = '掲示板を読み込めませんでした。';
+        console.error('掲示板の取得に失敗しました:', error);
+        return;
+      }
+      delete container.dataset.loading;
+      threadCache.set(boardDate, { time: Date.now(), posts: data || [] });
+      drawHolidayThread(container, data || [], boardDate);
+    }
+
+    function drawHolidayThread(container, posts, boardDate) {
+      container.replaceChildren();
+      const refresh = document.createElement('button');
+      refresh.type = 'button';
+      refresh.className = 'thread-refresh';
+      refresh.textContent = 'コメントを更新';
+      refresh.onclick = () => {
+        threadCache.delete(boardDate);
+        renderHolidayThread(container, boardDate, true);
+      };
+      const form = document.createElement('form');
+      form.className = 'thread-form';
+      const nickname = document.createElement('input');
+      nickname.className = 'input';
+      nickname.type = 'text';
+      nickname.maxLength = 32;
+      nickname.required = true;
+      nickname.placeholder = 'ニックネーム';
+      nickname.value = localStorage.getItem('holiday_nickname') || '';
+      const message = document.createElement('input');
+      message.className = 'input';
+      message.type = 'text';
+      message.maxLength = 280;
+      message.required = true;
+      message.placeholder = '一言コメント';
+      const submit = document.createElement('button');
+      submit.type = 'submit';
+      submit.textContent = '投稿';
+      const status = document.createElement('div');
+      status.className = 'thread-meta';
+      const list = document.createElement('div');
+      list.className = 'thread-list';
+      form.append(nickname, message, submit);
+      container.append(refresh, form, status, list);
+
+      const cooldownKey = 'holiday_post_cooldown_until';
+      let cooldownTimer;
+      const updateCooldown = () => {
+        const remaining = Number(localStorage.getItem(cooldownKey) || 0) - Date.now();
+        submit.disabled = remaining > 0;
+        status.textContent = remaining > 0 ? `次の投稿まで ${Math.ceil(remaining / 1000)} 秒` : '';
+        if (remaining <= 0 && cooldownTimer) clearInterval(cooldownTimer);
+      };
+      updateCooldown();
+      if (submit.disabled) cooldownTimer = setInterval(updateCooldown, 1000);
+
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const cleanNickname = nickname.value.trim();
+        const cleanMessage = message.value.trim();
+        if (!cleanNickname || !cleanMessage) return;
+        updateCooldown();
+        if (submit.disabled) return;
+        submit.disabled = true;
+        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+        if (authError || !user) {
+          status.textContent = '投稿用の認証を確認できません。';
+          submit.disabled = false;
+          return;
+        }
+        const { error } = await supabaseClient.from('holiday_posts').insert({
+          board_date: boardDate,
+          author_id: user.id,
+          nickname: cleanNickname,
+          message: cleanMessage
+        });
+        if (error) {
+          status.textContent = error.message.includes('20秒') ? '連続投稿はできません。少しお待ちください。' : '投稿できませんでした。';
+          console.error('掲示板への投稿に失敗しました:', error);
+          submit.disabled = false;
+          return;
+        }
+        localStorage.setItem('holiday_nickname', cleanNickname);
+        localStorage.setItem(cooldownKey, String(Date.now() + THREAD_COOLDOWN_MS));
+        threadCache.delete(boardDate);
+        await renderHolidayThread(container, boardDate, true);
+      });
+
+      for (const post of [...posts].reverse()) {
+        const row = document.createElement('article');
+        row.className = 'thread-post';
+        const author = document.createElement('div');
+        author.className = 'thread-meta';
+        author.textContent = `${post.nickname} · ${new Date(post.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}`;
+        const text = document.createElement('p');
+        text.textContent = post.message;
+        row.append(author, text);
+        list.append(row);
+      }
+      if (!posts.length) {
+        const empty = document.createElement('div');
+        empty.className = 'thread-meta';
+        empty.textContent = '最初の一言を投稿してください。';
+        list.append(empty);
+      }
+    }
+
 
     function renderCountdowns() {
       const card = document.getElementById('countdown-card');
       const wrap = document.getElementById('countdown-slide-wrap');
       const dotsContainer = document.getElementById('cd-dots-container');
 
+
       if (!eventsData || eventsData.length === 0) { card.classList.add('hidden'); return; }
+
 
       card.classList.remove('hidden');
       wrap.innerHTML = ''; dotsContainer.innerHTML = '';
 
+
       const today = new Date(); today.setHours(0,0,0,0);
+
 
       eventsData.forEach((evt, idx) => {
         let diffDays = 0;
@@ -683,6 +895,7 @@
           const target = new Date(evt.date + 'T00:00:00');
           diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
         }
+
 
         const slide = document.createElement('div');
         slide.className = 'insta-slide-item';
@@ -696,17 +909,21 @@
         `;
         wrap.appendChild(slide);
 
+
         const dot = document.createElement('div');
         dot.className = `insta-dot ${idx === currentCdIndex ? 'active' : ''}`;
         dot.onclick = () => setCdIndex(idx);
         dotsContainer.appendChild(dot);
       });
 
+
       if (eventsData.length <= 1) document.getElementById('countdown-insta-nav').classList.add('hidden');
       else document.getElementById('countdown-insta-nav').classList.remove('hidden');
 
+
       setCdIndex(currentCdIndex);
     }
+
 
     function setCdIndex(index) {
       if (index < 0) index = 0;
@@ -716,15 +933,19 @@
       const wrap = document.getElementById('countdown-slide-wrap');
       wrap.style.transform = `translateX(-${currentCdIndex * 100}%)`;
 
+
       const dots = document.querySelectorAll('#cd-dots-container .insta-dot');
       dots.forEach((d, i) => d.classList.toggle('active', i === currentCdIndex));
+
 
       document.getElementById('cd-prev-btn').disabled = (currentCdIndex === 0);
       document.getElementById('cd-next-btn').disabled = (currentCdIndex === eventsData.length - 1);
     }
 
+
     function prevCdSlide() { setCdIndex(currentCdIndex - 1); }
     function nextCdSlide() { setCdIndex(currentCdIndex + 1); }
+
 
     // 📝 提出物描画（「明日提出」判定）
     function renderHomeSubmissions() {
@@ -733,13 +954,17 @@
       const allCard = document.getElementById('submissions-card');
       const allContainer = document.getElementById('submissions-list-container');
 
+
       urgentContainer.innerHTML = ''; allContainer.innerHTML = '';
+
 
       if (!submissionsData || submissionsData.length === 0) {
         urgentCard.classList.add('hidden'); allCard.classList.add('hidden'); return;
       }
 
+
       allCard.classList.remove('hidden');
+
 
       const tomorrowObj = getDateObj(1);
       const tMonth = String(tomorrowObj.getMonth() + 1);
@@ -747,8 +972,10 @@
       
       let hasUrgent = false;
 
+
       submissionsData.forEach(item => {
-        const dateStr = (item.month && item.day) ? `${item.month}/${item.day}` : '期限なし';
+        const dateStr = (item.month && item.day) ? `${item.month}月${item.day}日` : '期限なし';
+
 
         const row = document.createElement('div');
         row.className = 'submission-row';
@@ -759,6 +986,7 @@
         `;
         allContainer.appendChild(row);
 
+
         // 明日締め切りの判定
         if (item.month === tMonth && item.day === tDay) {
           hasUrgent = true;
@@ -767,15 +995,18 @@
         }
       });
 
+
       if (hasUrgent) urgentCard.classList.remove('hidden');
       else urgentCard.classList.add('hidden');
     }
+
 
     function applyStylesAndText() {
       document.getElementById('header-custom-display').textContent = portalData.headerText || '';
       document.body.style.backgroundColor = portalData.bgColor || '#fbfbfd';
       document.body.style.backgroundImage = selectedImageBase64 ? `url('${selectedImageBase64}')` : 'none';
-      document.getElementById('ticker-text').textContent = portalData.notice || 'お知らせはありません';
+      renderTicker();
+
 
       const bannerCard = document.getElementById('banner-card');
       if (selectedBannerBase64) {
@@ -785,54 +1016,98 @@
         bannerCard.classList.add('hidden');
       }
 
+
       renderCountdowns();
     }
 
-    // 🎲 おみくじ（端末内1日1回判定）
-    function checkOmikujiStatus() {
-      const todayStr = formatDateKey(new Date());
-      const savedDate = localStorage.getItem('omikuji_date');
-      const btn = document.getElementById('omikuji-btn');
-      const rarity = document.getElementById('omikuji-rarity');
-      const res = document.getElementById('omikuji-result');
-      const desc = document.getElementById('omikuji-desc');
 
-      if (savedDate === todayStr) {
-        btn.textContent = '本日のおみくじ引換済み';
-        btn.disabled = true;
-        btn.style.opacity = '0.6';
-        rarity.textContent = localStorage.getItem('omikuji_rarity') || '';
-        res.textContent = localStorage.getItem('omikuji_res') || '';
-        desc.textContent = localStorage.getItem('omikuji_desc') || '';
-        rarity.classList.remove('hidden');
-        res.classList.remove('hidden');
-        desc.classList.remove('hidden');
-      } else {
-        btn.textContent = 'おみくじを引く！';
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        rarity.classList.add('hidden');
-        res.classList.add('hidden');
-        desc.classList.add('hidden');
+    function todayISODate() { return formatISODate(new Date()); }
+
+    function readDailyOmikuji() {
+      try {
+        const saved = JSON.parse(localStorage.getItem('daily_omikuji') || 'null');
+        return saved && saved.date === todayISODate() ? saved : null;
+      } catch (error) {
+        console.error('保存済みおみくじの読み込みに失敗しました:', error);
+        return null;
       }
     }
 
-    function drawOmikuji() {
-      if (!omikujiList || omikujiList.length === 0) {
-        alert('おみくじの項目が設定されていません');
+    function renderTicker(animate = false) {
+      const ticker = document.getElementById('ticker-text');
+      const box = ticker.closest('.ticker-wrap');
+      const result = readDailyOmikuji();
+      const notice = portalData.notice || 'お知らせはありません';
+      ticker.textContent = result ? `${notice}　｜　${result.message}` : notice;
+      ticker.classList.toggle('neon', Boolean(result));
+      box.classList.toggle('neon', Boolean(result));
+      if (result && CSS.supports('color', result.color)) box.style.setProperty('--neon-color', result.color);
+      else box.style.removeProperty('--neon-color');
+      const button = document.getElementById('ticker-omikuji-btn');
+      button.style.display = result ? 'none' : '';
+      if (result && animate) {
+        box.classList.remove('flicker');
+        requestAnimationFrame(() => box.classList.add('flicker'));
+      }
+    }
+
+    function scheduleOmikujiMidnightReset() {
+      clearTimeout(midnightTimer);
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 50);
+      midnightTimer = setTimeout(() => {
+        renderTicker(true);
+        scheduleOmikujiMidnightReset();
+      }, midnight.getTime() - now.getTime());
+    }
+
+    function restoreDailyOmikuji() {
+      const saved = localStorage.getItem('daily_omikuji');
+      if (saved && !readDailyOmikuji()) localStorage.removeItem('daily_omikuji');
+      renderTicker();
+      scheduleOmikujiMidnightReset();
+    }
+
+    async function drawOmikuji() {
+      const button = document.getElementById('ticker-omikuji-btn');
+      if (button.disabled) return;
+      if (readDailyOmikuji()) {
+        renderTicker(true);
         return;
       }
-
-      const todayStr = formatDateKey(new Date());
-      const item = omikujiList[Math.floor(Math.random() * omikujiList.length)];
-
-      localStorage.setItem('omikuji_date', todayStr);
-      localStorage.setItem('omikuji_rarity', item.rarity || '吉');
-      localStorage.setItem('omikuji_res', item.title || '本日の運勢');
-      localStorage.setItem('omikuji_desc', item.desc || '');
-
-      checkOmikujiStatus();
+      if (!supabaseClient) {
+        alert('Supabaseに接続できません。');
+        return;
+      }
+      button.disabled = true;
+      const { data, error } = await supabaseClient
+        .from('omikuji_items')
+        .select('message, neon_color')
+        .eq('enabled', true)
+        .order('sort_order')
+        .limit(100);
+      if (error) {
+        button.disabled = false;
+        console.error('おみくじの取得に失敗しました:', error);
+        alert('おみくじを取得できませんでした。');
+        return;
+      }
+      if (!data || !data.length) {
+        button.disabled = false;
+        alert('おみくじがまだ登録されていません。');
+        return;
+      }
+      const item = data[Math.floor(Math.random() * data.length)];
+      localStorage.setItem('daily_omikuji', JSON.stringify({
+        date: todayISODate(),
+        message: item.message,
+        color: item.neon_color
+      }));
+      renderTicker(true);
+      scheduleOmikujiMidnightReset();
     }
+
 
     function compressImage(file, callback) {
       const reader = new FileReader();
@@ -853,11 +1128,14 @@
       reader.readAsDataURL(file);
     }
 
+
     function handleFileSelect(e) { if (e.target.files[0]) compressImage(e.target.files[0], res => { selectedImageBase64 = res; applyStylesAndText(); }); }
     function clearBgImage() { selectedImageBase64 = ''; document.getElementById('cfg-bg-file').value = ''; applyStylesAndText(); }
 
+
     function handleBannerFileSelect(e) { if (e.target.files[0]) compressImage(e.target.files[0], res => { selectedBannerBase64 = res; applyStylesAndText(); }); }
     function clearBannerImage() { selectedBannerBase64 = ''; document.getElementById('cfg-banner-file').value = ''; applyStylesAndText(); }
+
 
     function fetchWeather() {
       fetch('https://api.open-meteo.com/v1/forecast?latitude=33.5904&longitude=130.4017&current=temperature_2m,weather_code')
@@ -870,14 +1148,26 @@
         }).catch(() => {});
     }
 
+
     function openAuthModal() { document.getElementById('pwd-input').value = ''; document.getElementById('auth-modal').classList.add('active'); }
     function closeAuthModal() { document.getElementById('auth-modal').classList.remove('active'); }
+    async function ensurePublicSession() {
+      if (!supabaseClient) return;
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      if (error) throw error;
+      if (!session) {
+        const { error: signInError } = await supabaseClient.auth.signInAnonymously();
+        if (signInError) throw signInError;
+      }
+    }
+
     function verifyPassword() {
       const input = document.getElementById('pwd-input').value;
       if ((portalData.customPassword && input === portalData.customPassword) || input === _0x9b) {
         closeAuthModal(); showSettings();
       } else { alert('パスワードが違います'); }
     }
+
 
     function showSettings() {
       document.getElementById('home-view').classList.add('hidden');
@@ -887,21 +1177,20 @@
       document.getElementById('cfg-bg-color').value = portalData.bgColor || '#fbfbfd';
       document.getElementById('cfg-notice').value = portalData.notice || '';
 
-      document.getElementById('cfg-song-title').value = holidaySong.title || '';
-      document.getElementById('cfg-song-artist').value = holidaySong.artist || '';
-      document.getElementById('cfg-song-url').value = holidaySong.url || '';
 
       const validKeys = []; for (let i = 0; i <= 7; i++) validKeys.push(formatDateKey(getDateObj(i)));
       if (!selectedEditDateKey || !validKeys.includes(selectedEditDateKey)) selectedEditDateKey = formatDateKey(getDateObj(currentHomeOffset));
       
       renderDateSelectBar();
-      renderOmikujiEditor();
       renderEventEditor();
       renderSubmissionEditor();
       renderLinkEditor();
+      refreshAdminStatus();
     }
 
+
     function showHome() { document.getElementById('settings-view').classList.add('hidden'); document.getElementById('home-view').classList.remove('hidden'); renderHomeSchedule(); renderHomeSubmissions(); }
+
 
     function renderDateSelectBar() {
       const bar = document.getElementById('date-select-bar'); bar.innerHTML = '';
@@ -916,20 +1205,24 @@
       renderScheduleEditor();
     }
 
+
     function renderScheduleEditor() {
       const container = document.getElementById('schedule-editor'); container.innerHTML = '';
       const dayData = scheduleData[selectedEditDateKey] || {};
 
+
       const curTag = dayData.tag || '';
-      document.getElementById('current-tag-text').textContent = curTag ? `タグ: #${curTag}` : 'タグ: 設定なし';
+      document.getElementById('current-tag-text').textContent = curTag ? `時間割日程タグ: #${curTag}` : '時間割日程タグ: 設定なし';
+
 
       for (let p = 1; p <= 7; p++) {
         const pData = dayData[p] || { sub: '', det: '' };
         const row = document.createElement('div'); row.className = 'period-edit-row';
-        row.innerHTML = `<span class="period-tag">${p}限</span><input type="text" class="input p-sub" data-p="${p}" value="${pData.sub || ''}" placeholder="教科名" style="flex:1;"><input type="text" class="input p-det" data-p="${p}" value="${pData.det || ''}" placeholder="詳細" style="flex:1.5;">`;
+        row.innerHTML = `<span class="period-tag">${p}限</span><input type="text" class="input p-sub" data-p="${p}" value="${pData.sub || ''}" placeholder="教科" style="flex:1;"><input type="text" class="input p-det" data-p="${p}" value="${pData.det || ''}" placeholder="詳細" style="flex:1.5;">`;
         container.appendChild(row);
       }
     }
+
 
     function captureScheduleEditorInputs() {
       if (!selectedEditDateKey) return;
@@ -938,22 +1231,173 @@
       document.querySelectorAll('.p-det').forEach(input => { const p = input.getAttribute('data-p'); if (!scheduleData[selectedEditDateKey][p]) scheduleData[selectedEditDateKey][p] = {}; scheduleData[selectedEditDateKey][p].det = input.value.trim(); });
     }
 
-    // 🎲 おみくじエディタ
-    function renderOmikujiEditor() {
-      const container = document.getElementById('omikuji-editor-list'); container.innerHTML = '';
-      omikujiList.forEach((item, idx) => {
-        const div = document.createElement('div'); div.className = 'edit-item-row omi-edit-item';
-        div.innerHTML = `
-          <input type="text" class="input omi-rarity" value="${item.rarity || ''}" placeholder="レア度 (例: 🌸 大吉 / SSR)" style="flex:1; min-width:110px;">
-          <input type="text" class="input omi-title" value="${item.title || ''}" placeholder="タイトル (例: 小テスト満点)" style="flex:1.2; min-width:130px;">
-          <input type="text" class="input omi-desc" value="${item.desc || ''}" placeholder="解説メッセージ" style="flex:2; min-width:180px;">
-          <button class="del-btn" onclick="removeOmikujiItem(${idx})">削除</button>
-        `;
-        container.appendChild(div);
-      });
+
+    async function refreshAdminStatus() {
+      const status = document.getElementById('omikuji-admin-status');
+      const list = document.getElementById('omikuji-admin-list');
+      adminUserId = null;
+      document.getElementById('omikuji-add-btn').hidden = true;
+      document.getElementById('admin-signout-btn').hidden = true;
+      document.getElementById('omikuji-admin-login').hidden = false;
+      list.replaceChildren();
+      if (!supabaseClient) {
+        status.textContent = 'Supabaseに接続できません。';
+        return;
+      }
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+      if (authError) {
+        status.textContent = '管理者認証を確認できません。';
+        console.error('認証情報の確認に失敗しました:', authError);
+        return;
+      }
+      if (!user) {
+        status.textContent = '管理者アカウントでログインしてください。';
+        return;
+      }
+      const { data, error } = await supabaseClient
+        .from('admin_users')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) {
+        status.textContent = '管理者権限を確認できません。';
+        console.error('管理者権限の確認に失敗しました:', error);
+        return;
+      }
+      if (!data) {
+        status.textContent = 'このアカウントには編集権限がありません。';
+        return;
+      }
+      adminUserId = user.id;
+      status.textContent = '管理者としてログイン中です。';
+      document.getElementById('omikuji-admin-login').hidden = true;
+      document.getElementById('omikuji-add-btn').hidden = false;
+      document.getElementById('admin-signout-btn').hidden = false;
+      await renderAdminOmikuji();
     }
-    function addOmikujiItem() { omikujiList.push({ rarity: '吉', title: '', desc: '' }); renderOmikujiEditor(); }
-    function removeOmikujiItem(idx) { omikujiList.splice(idx, 1); renderOmikujiEditor(); }
+
+    async function adminSignIn() {
+      if (!supabaseClient) {
+        alert('Supabaseに接続できません。');
+        return;
+      }
+      const email = document.getElementById('admin-email').value.trim();
+      const password = document.getElementById('admin-password').value;
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        alert(`管理者ログインに失敗しました: ${error.message}`);
+        return;
+      }
+      await refreshAdminStatus();
+    }
+
+    async function adminSignOut() {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) {
+        alert(`ログアウトに失敗しました: ${error.message}`);
+        return;
+      }
+      adminUserId = null;
+      await ensurePublicSession();
+      await refreshAdminStatus();
+    }
+
+    async function renderAdminOmikuji() {
+      const container = document.getElementById('omikuji-admin-list');
+      container.replaceChildren();
+      const { data, error } = await supabaseClient
+        .from('omikuji_items')
+        .select('id, message, neon_color, enabled')
+        .order('sort_order');
+      if (error) {
+        container.textContent = 'おみくじ一覧を取得できませんでした。';
+        console.error('おみくじ一覧の取得に失敗しました:', error);
+        return;
+      }
+      for (const item of data || []) {
+        const row = document.createElement('div');
+        row.className = 'edit-item-row';
+        const message = document.createElement('input');
+        message.className = 'input';
+        message.maxLength = 160;
+        message.value = item.message;
+        message.placeholder = '大吉！〜〜〜';
+        message.style.flex = '2';
+        const color = document.createElement('input');
+        color.className = 'input';
+        color.type = 'text';
+        color.maxLength = 40;
+        color.value = item.neon_color || '#39ff14';
+        color.placeholder = '#39ff14 または rgb(57, 255, 20)';
+        color.style.flex = '1';
+        color.setAttribute('aria-label', '発光色');
+        const save = document.createElement('button');
+        save.type = 'button';
+        save.className = 'add-btn';
+        save.textContent = '保存';
+        save.onclick = async () => {
+          if (!message.value.trim()) {
+            alert('おみくじの文章を入力してください。');
+            return;
+          }
+          if (!CSS.supports('color', color.value.trim())) {
+            alert('発光色は有効なCSSカラー（HexまたはRGB）で入力してください。');
+            return;
+          }
+          const result = await supabaseClient.from('omikuji_items')
+            .update({ message: message.value.trim(), neon_color: color.value.trim() })
+            .eq('id', item.id);
+          if (result.error) {
+            alert(`保存に失敗しました: ${result.error.message}`);
+            return;
+          }
+          await renderAdminOmikuji();
+        };
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'del-btn';
+        remove.textContent = '削除';
+        remove.onclick = async () => {
+          const result = await supabaseClient.from('omikuji_items').delete().eq('id', item.id);
+          if (result.error) {
+            alert(`削除に失敗しました: ${result.error.message}`);
+            return;
+          }
+          await renderAdminOmikuji();
+        };
+        const enabled = document.createElement('label');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = item.enabled;
+        checkbox.onchange = async () => {
+          const result = await supabaseClient.from('omikuji_items')
+            .update({ enabled: checkbox.checked })
+            .eq('id', item.id);
+          if (result.error) {
+            checkbox.checked = !checkbox.checked;
+            alert(`公開設定の更新に失敗しました: ${result.error.message}`);
+          }
+        };
+        enabled.append(checkbox, document.createTextNode(' 公開'));
+        row.append(message, color, enabled, save, remove);
+        container.append(row);
+      }
+    }
+
+    async function addAdminOmikujiItem() {
+      if (!adminUserId) return;
+      const { error } = await supabaseClient.from('omikuji_items').insert({
+        message: '新しいおみくじ',
+        neon_color: '#39ff14',
+        enabled: true
+      });
+      if (error) {
+        alert(`追加に失敗しました: ${error.message}`);
+        return;
+      }
+      await renderAdminOmikuji();
+    }
+
 
     // ⏳ カウントダウンエディタ
     function renderEventEditor() {
@@ -971,19 +1415,23 @@
     function addEventItem() { eventsData.push({ title: '', date: '' }); renderEventEditor(); }
     function removeEventItem(idx) { eventsData.splice(idx, 1); renderEventEditor(); }
 
+
     // 🏷️ タグ管理
     function openTagModal() { renderTagChips(); document.getElementById('tag-modal').classList.add('active'); }
     function closeTagModal() { document.getElementById('tag-modal').classList.remove('active'); }
 
+
     function renderTagChips() {
       const container = document.getElementById('tag-list-chips'); container.innerHTML = '';
       const currentTag = (scheduleData[selectedEditDateKey] && scheduleData[selectedEditDateKey].tag) || '';
+
 
       const noneChip = document.createElement('div');
       noneChip.className = `tag-chip-item ${!currentTag ? 'active' : ''}`;
       noneChip.textContent = '🚫 設定なし';
       noneChip.onclick = () => selectTag('');
       container.appendChild(noneChip);
+
 
       customTags.forEach(tag => {
         const chip = document.createElement('div');
@@ -994,12 +1442,14 @@
       });
     }
 
+
     function selectTag(tag) {
       if (!scheduleData[selectedEditDateKey]) scheduleData[selectedEditDateKey] = {};
       scheduleData[selectedEditDateKey].tag = tag;
       renderScheduleEditor();
       closeTagModal();
     }
+
 
     function addNewTag() {
       const input = document.getElementById('new-tag-input');
@@ -1011,6 +1461,7 @@
       }
     }
 
+
     // 📝 提出物エディタ (月・日選択オプション)
     function renderSubmissionEditor() {
       const container = document.getElementById('submission-editor-list'); container.innerHTML = '';
@@ -1018,14 +1469,17 @@
       let monthOptions = '<option value="">月</option>';
       for (let m = 1; m <= 12; m++) monthOptions += `<option value="${m}">${m}月</option>`;
 
+
       let dayOptions = '<option value="">日</option>';
       for (let d = 1; d <= 31; d++) dayOptions += `<option value="${d}">${d}日</option>`;
+
 
       submissionsData.forEach((item, index) => {
         const div = document.createElement('div'); div.className = 'edit-item-row sub-edit-item';
         
         const mSelect = `<select class="select sub-month">${monthOptions}</select>`;
         const dSelect = `<select class="select sub-day">${dayOptions}</select>`;
+
 
         div.innerHTML = `
           <input type="text" class="input sub-title" value="${item.title || ''}" placeholder="教科・課題名" style="flex:1; min-width:110px;">
@@ -1037,8 +1491,10 @@
           <button class="del-btn" onclick="removeSubmissionItem(${index})">削除</button>
         `;
 
+
         if (item.month) div.querySelector('.sub-month').value = item.month;
         if (item.day) div.querySelector('.sub-day').value = item.day;
+
 
         container.appendChild(div);
       });
@@ -1046,16 +1502,18 @@
     function addSubmissionItem() { submissionsData.push({ title: '', month: '', day: '', detail: '' }); renderSubmissionEditor(); }
     function removeSubmissionItem(index) { submissionsData.splice(index, 1); renderSubmissionEditor(); }
 
+
     function renderLinkEditor() {
       const container = document.getElementById('link-editor-list'); container.innerHTML = '';
       linksData.forEach((item, index) => {
         const div = document.createElement('div'); div.className = 'edit-item-row link-edit-item';
-        div.innerHTML = `<input type="text" class="input link-lbl" value="${item.label}" placeholder="表示名" style="flex:1;"><input type="text" class="input link-url" value="${item.url}" placeholder="URL" style="flex:2;"><button class="del-btn" onclick="removeLinkItem(${index})">削除</button>`;
+        div.innerHTML = `<input type="text" class="input link-lbl" value="${item.label || ''}" placeholder="リンク名" style="flex:1;"><input type="text" class="input link-url" value="${item.url || ''}" placeholder="URL" style="flex:2;"><button class="del-btn" onclick="removeLinkItem(${index})">削除</button>`;
         container.appendChild(div);
       });
     }
     function addLinkItem() { linksData.push({ label: '', url: '' }); renderLinkEditor(); }
     function removeLinkItem(index) { linksData.splice(index, 1); renderLinkEditor(); }
+
 
     function renderHomeLinks() {
       const container = document.getElementById('home-links'); container.innerHTML = '';
@@ -1066,9 +1524,22 @@
       });
     }
 
+
     currentHomeOffset = (new Date().getHours() >= 18) ? 1 : 0;
+    document.getElementById('schedule-list-container').addEventListener('scroll', handleScheduleScroll, { passive: true });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        renderTicker();
+        scheduleOmikujiMidnightReset();
+      }
+    });
     updateClock(); setInterval(updateClock, 1000); fetchWeather();
-    fetchAllFromSupabase();
+    ensurePublicSession()
+      .then(fetchAllFromSupabase)
+      .catch(error => {
+        console.error('Supabase認証の初期化に失敗しました:', error);
+        fetchAllFromSupabase();
+      });
   </script>
 </body>
 </html>
