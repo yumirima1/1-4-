@@ -97,10 +97,40 @@
       border: 1px solid rgba(255, 59, 48, 0.2);
     }
     .urgent-header { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 700; color: var(--accent-red); margin-bottom: 8px; }
-    .push-notification-card { display: flex; flex-direction: column; gap: 8px; }
-    .push-notification-copy { font-size: 0.82rem; line-height: 1.5; color: var(--sub); }
-    .push-notification-button { align-self: flex-start; min-height: 42px; padding: 10px 14px; }
-    .push-notification-status { min-height: 1.2em; font-size: 0.8rem; color: var(--sub); }
+    .push-notification-toggle {
+      appearance: none;
+      -webkit-appearance: none;
+      position: relative;
+      width: 44px;
+      height: 26px;
+      flex: 0 0 auto;
+      border: 0;
+      border-radius: 999px;
+      background: #d1d1d6;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    .push-notification-toggle::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      transition: transform 0.2s ease;
+    }
+    .push-notification-toggle:checked { background: #34c759; }
+    .push-notification-toggle:checked::after { transform: translateX(18px); }
+    .push-notification-toggle:focus-visible { outline: 3px solid rgba(0, 122, 255, 0.45); outline-offset: 3px; }
+    .push-notification-toggle:disabled { cursor: wait; opacity: 0.65; }
+    .push-notification-status { display: none; margin: -4px 0 8px; font-size: 0.8rem; color: var(--sub); }
+    .push-notification-status:not(:empty) { display: block; }
+    @media (prefers-reduced-motion: reduce) {
+      .push-notification-toggle, .push-notification-toggle::after { transition: none; }
+    }
 
 
     /* カウントダウン（インスタ風） */
@@ -137,6 +167,8 @@
 
     /* 時間割 */
     .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+    .schedule-card-header { justify-content: flex-start; }
+    .push-notification-switch { display: inline-flex; align-items: center; margin-right: 4px; cursor: pointer; }
     .schedule-title-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .schedule-title { font-size: clamp(0.95rem, 1.3vw, 1.1rem); font-weight: 700; }
     .schedule-badge { font-size: 0.78rem; background: var(--text); color: #fff; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
@@ -345,24 +377,26 @@
       <button id="ticker-omikuji-btn" class="ticker-omikuji-btn" onclick="drawOmikuji()">一日おみくじ</button>
     </div>
 
-    <section class="card push-notification-card" aria-labelledby="push-notification-title">
-      <strong id="push-notification-title">🔔 明日の時間割・提出物通知</strong>
-      <p class="push-notification-copy">通知を許可すると、毎日18時に明日の時間割と提出物をお知らせします。この端末ごとに設定できます。</p>
-      <button id="push-notification-button" class="add-btn push-notification-button" type="button" onclick="togglePushSubscription()">通知を設定</button>
-      <p id="push-notification-status" class="push-notification-status" role="status" aria-live="polite"></p>
-    </section>
-
-
     <!-- 📅 時間割 -->
     <div class="card">
-      <div class="schedule-header">
+      <div class="schedule-header schedule-card-header">
+        <label class="push-notification-switch">
+          <input
+            id="push-notification-toggle"
+            class="push-notification-toggle"
+            type="checkbox"
+            role="switch"
+            aria-label="明日の時間割と提出物の通知"
+            disabled
+            onchange="togglePushSubscription()">
+        </label>
         <div class="schedule-title-group">
           <span class="schedule-title">時間割</span>
-          <span id="schedule-tag-label-head" class="schedule-tag-badge hidden">#休み</span>
           <span id="schedule-target-label" class="schedule-badge">--</span>
           <span id="schedule-tag-label-date" class="schedule-tag-badge hidden">#休み</span>
         </div>
       </div>
+      <p id="push-notification-status" class="push-notification-status" role="status" aria-live="polite"></p>
       
       <div id="schedule-list-container" class="schedule-track"></div>
 
@@ -456,7 +490,7 @@
         <div id="date-select-bar" class="date-select-bar"></div>
         
         <div class="tag-select-container">
-          <div style="font-size:0.85rem; font-weight:600; color:var(--sub);" id="current-tag-text">時間割日程タグ: 設定なし</div>
+          <div style="font-size:0.85rem; font-weight:600; color:var(--sub);" id="current-tag-text">タグ: 設定なし</div>
           <button type="button" class="tag-display-btn" onclick="openTagModal()">🏷️ タグを選択</button>
         </div>
 
@@ -928,10 +962,7 @@
       const dayData = scheduleData[scheduleKeyForDate(targetDate)] || {};
       const currentTag = dayData.tag || '';
       document.getElementById('schedule-target-label').textContent = formatDateLabel(targetDate, currentHomeOffset);
-      const tagLabelHead = document.getElementById('schedule-tag-label-head');
       const tagLabelDate = document.getElementById('schedule-tag-label-date');
-      tagLabelHead.textContent = '時間割日程タグ';
-      tagLabelHead.classList.toggle('hidden', !currentTag);
       tagLabelDate.textContent = currentTag ? `#${currentTag}` : '';
       tagLabelDate.classList.toggle('hidden', !currentTag);
     }
@@ -1321,7 +1352,7 @@
 
 
       const curTag = dayData.tag || '';
-      document.getElementById('current-tag-text').textContent = curTag ? `時間割日程タグ: #${curTag}` : '時間割日程タグ: 設定なし';
+      document.getElementById('current-tag-text').textContent = curTag ? `タグ: #${curTag}` : 'タグ: 設定なし';
 
 
       for (let p = 1; p <= 7; p++) {
@@ -1634,9 +1665,17 @@
     }
 
     function setPushButtonState(isSubscribed) {
-      const button = document.getElementById('push-notification-button');
-      button.textContent = isSubscribed ? 'この端末の通知を解除' : '通知を設定';
-      button.dataset.subscribed = String(isSubscribed);
+      document.getElementById('push-notification-toggle').checked = isSubscribed;
+    }
+
+    function isIosDevice() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    function isStandaloneApp() {
+      return navigator.standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches;
     }
 
     function urlBase64ToUint8Array(base64String) {
@@ -1659,11 +1698,11 @@
       return token;
     }
 
-    async function savePushSubscription(action, subscription) {
+    async function savePushSubscription(action, subscription = null) {
       const { error } = await supabaseClient.functions.invoke('push-subscriptions', {
         body: {
           action,
-          subscription: subscription.toJSON(),
+          ...(subscription ? { subscription: subscription.toJSON() } : {}),
           managementToken: getPushManagementToken()
         }
       });
@@ -1671,51 +1710,73 @@
     }
 
     async function initializePushNotifications() {
-      const button = document.getElementById('push-notification-button');
+      const toggle = document.getElementById('push-notification-toggle');
       if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-        button.disabled = true;
-        setPushStatus('このブラウザーはWeb Push通知に対応していません。');
+        if (isIosDevice() && !isStandaloneApp()) return;
+        toggle.disabled = true;
         return;
       }
       try {
         const registration = await navigator.serviceWorker.register('./sw.js');
         const subscription = await registration.pushManager.getSubscription();
         setPushButtonState(Boolean(subscription));
+        toggle.disabled = false;
         if (Notification.permission === 'denied') {
           setPushStatus('通知がブロックされています。ブラウザーのサイト設定から許可してください。');
         }
       } catch (error) {
         console.error('Service Workerの登録に失敗しました:', error);
+        toggle.disabled = true;
         setPushStatus('通知機能を初期化できませんでした。ページを再読み込みしてください。');
       }
     }
 
     async function togglePushSubscription() {
-      const button = document.getElementById('push-notification-button');
-      button.disabled = true;
+      const toggle = document.getElementById('push-notification-toggle');
+      const enable = toggle.checked;
+      toggle.disabled = true;
+      setPushStatus('');
       try {
-        if (!supabaseClient) throw new Error('Supabaseに接続できません。');
+        if (enable && isIosDevice() && !isStandaloneApp()) {
+          alert('iOSをご利用の方は、画面下の共有ボタンから「ホーム画面に追加」してアプリとして開いた後、通知を許可してください。');
+          toggle.checked = false;
+          return;
+        }
         if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
           throw new Error('このブラウザーはWeb Push通知に対応していません。');
         }
-        if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.startsWith('REPLACE_')) {
+
+        if (enable && !VAPID_PUBLIC_KEY) {
           throw new Error('VAPID公開鍵が設定されていません。');
         }
-        if (button.dataset.subscribed !== 'true' && Notification.permission !== 'granted') {
+        if (enable && Notification.permission !== 'granted') {
           const permission = await Notification.requestPermission();
           if (permission !== 'granted') {
+            toggle.checked = false;
             setPushStatus(permission === 'denied'
               ? '通知がブロックされています。ブラウザーのサイト設定から許可してください。'
-              : '通知を許可すると、この端末で受け取れます。');
+              : '通知の許可がキャンセルされました。');
             return;
           }
         }
         const registration = await navigator.serviceWorker.ready;
-        let subscription = await registration.pushManager.getSubscription();
-        if (subscription) {
-          await savePushSubscription('remove', subscription);
-          if (!await subscription.unsubscribe()) {
-            throw new Error('ブラウザー側の通知購読を解除できませんでした。');
+        const subscription = await registration.pushManager.getSubscription();
+
+        if (!enable) {
+          if (!supabaseClient) throw new Error('Supabaseに接続できないため、通知を解除できません。');
+          const managementToken = localStorage.getItem(PUSH_MANAGEMENT_TOKEN_KEY);
+          if (subscription || managementToken) {
+            await savePushSubscription('remove', subscription);
+          }
+          if (subscription) {
+            try {
+              await subscription.unsubscribe();
+            } catch (error) {
+              console.error('サーバー側の購読解除後にブラウザーの購読解除に失敗しました:', error);
+              localStorage.removeItem(PUSH_MANAGEMENT_TOKEN_KEY);
+              setPushStatus('サーバー側の通知は解除しましたが、ブラウザー側の解除に失敗しました。');
+              return;
+            }
           }
           localStorage.removeItem(PUSH_MANAGEMENT_TOKEN_KEY);
           setPushButtonState(false);
@@ -1723,26 +1784,25 @@
           return;
         }
 
-        if (Notification.permission !== 'granted') {
-          throw new Error('通知の許可が必要です。もう一度「通知を設定」を押してください。');
-        }
-        subscription = await registration.pushManager.subscribe({
+        if (!supabaseClient) throw new Error('Supabaseに接続できません。');
+        const activeSubscription = subscription || await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
         });
         try {
-          await savePushSubscription('register', subscription);
+          await savePushSubscription('register', activeSubscription);
         } catch (error) {
-          await subscription.unsubscribe();
+          if (!subscription) await activeSubscription.unsubscribe();
           throw error;
         }
         setPushButtonState(true);
         setPushStatus('通知を設定しました。この端末に毎日18時ごろ通知します。');
       } catch (error) {
         console.error('Push通知の設定に失敗しました:', error);
+        toggle.checked = !enable;
         setPushStatus(error.message || '通知の設定に失敗しました。');
       } finally {
-        button.disabled = false;
+        toggle.disabled = false;
       }
     }
 
