@@ -201,6 +201,7 @@
     .modal-box { background: var(--card); width: 90%; max-width: 380px; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; }
     .modal-close-btn { background: rgba(0,0,0,0.06); border: none; font-size: 1.1rem; width: 30px; height: 30px; border-radius: 15px; cursor: pointer; color: var(--sub); font-weight: bold; display: flex; align-items: center; justify-content: center; }
+    #holiday-omikuji-modal .input { width: 100%; }
 
 
     .tag-list-chips { display: flex; flex-wrap: wrap; gap: 8px; max-height: 180px; overflow-y: auto; padding: 4px; }
@@ -215,7 +216,8 @@
       #settings-view .select { min-width: 0; max-width: 100%; font-size: 16px; }
       #settings-view button,
       #tag-modal button,
-      #omikuji-modal button { min-height: 44px; }
+      #omikuji-modal button,
+      #holiday-omikuji-modal button { min-height: 44px; }
 
       .settings-header { position: sticky; top: 0; z-index: 2; padding: 4px 0 10px; background: var(--card); }
       .settings-header .settings-btn { min-height: 44px; padding: 8px 14px; }
@@ -244,6 +246,7 @@
       .sub-edit-item .select { width: 100%; }
       .edit-item-row .del-btn { width: 100%; }
       #omikuji-admin-list .edit-item-row { display: grid; grid-template-columns: minmax(0, 1fr) 72px; }
+      #omikuji-admin-list .omikuji-rarity,
       #omikuji-admin-list .omikuji-message { grid-column: 1 / -1; width: 100%; }
       #omikuji-admin-list input[type="color"] { width: 100%; min-height: 44px; }
       #omikuji-admin-list .del-btn { width: 100%; }
@@ -506,6 +509,32 @@
     </div>
   </div>
 
+  <div id="holiday-omikuji-modal" class="modal" onclick="closeHolidayOmikujiModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div style="font-weight:700; font-size:1.1rem;">🎲 おみくじを追加</div>
+        <button type="button" class="modal-close-btn" onclick="closeHolidayOmikujiModal()">✕</button>
+      </div>
+      <div class="form-label">あなたのおみくじ、あした誰かが引くかも？</div>
+      <label class="form-label" for="holiday-omikuji-rarity">レア度</label>
+      <select id="holiday-omikuji-rarity" class="input">
+        <option value="大吉">大吉</option>
+        <option value="中吉">中吉</option>
+        <option value="小吉">小吉</option>
+        <option value="吉">吉</option>
+        <option value="末吉">末吉</option>
+        <option value="凶">凶</option>
+        <option value="大凶">大凶</option>
+      </select>
+      <label class="form-label" for="holiday-omikuji-message">内容</label>
+      <textarea id="holiday-omikuji-message" class="input" maxlength="160" rows="3" placeholder="今日の運勢やひとこと"></textarea>
+      <label class="form-label" for="holiday-omikuji-color">おみくじの色</label>
+      <input id="holiday-omikuji-color" type="color" class="input" value="#39ff14">
+      <div id="holiday-omikuji-status" class="form-label" aria-live="polite"></div>
+      <button id="holiday-omikuji-submit" type="button" class="save-btn" onclick="submitHolidayOmikuji()">おみくじを共有する</button>
+    </div>
+  </div>
+
   <script>
     const SUPABASE_URL = "https://kvlruwtidwvopfsphnqc.supabase.co";
     const SUPABASE_PUBLIC_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2bHJ1d3RpZHd2b3Bmc3BobnFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzMjkxNzUsImV4cCI6MjEwNjkwNTE3NX0.Iqc7ezCNKaU68UmgBOEsETdQjZHgbhKXOx6mK0utvBk";
@@ -530,10 +559,10 @@
     let submissionsData = []; 
     let customTags = ['休み', '定期テスト']; 
     let omikujiList = [
-      { message: '大吉！小テストで満点！今日は自信を持っていこう。', color: '#ff2d55' },
-      { message: '中吉！平和で楽しい一日になりそう。', color: '#39ff14' },
-      { message: '小吉！誰かの親切に出会えるかも。', color: '#00c8ff' },
-      { message: '凶！忘れ物に注意。出発前に持ち物を確認しよう。', color: '#bf5af2' }
+      { rarity: '大吉', message: '小テストで満点！今日は自信を持っていこう。', color: '#ff2d55' },
+      { rarity: '中吉', message: '平和で楽しい一日になりそう。', color: '#39ff14' },
+      { rarity: '小吉', message: '誰かの親切に出会えるかも。', color: '#00c8ff' },
+      { rarity: '凶', message: '忘れ物に注意。出発前に持ち物を確認しよう。', color: '#bf5af2' }
     ];
     let selectedImageBase64 = '';
     let selectedBannerBase64 = '';
@@ -545,7 +574,6 @@
 
     const SETTINGS_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
     let settingsAuthorized = false;
-    let openHolidayOmikujiAfterAuth = false;
     let midnightTimer = null;
     let scheduleScrollTimer = null;
     let countdownTouchStart = null;
@@ -588,7 +616,8 @@
                 const savedItems = JSON.parse(config.omikuji_list);
                 if (Array.isArray(savedItems)) {
                   omikujiList = savedItems.map((item, index) => ({
-                    message: item.message || [item.rarity, item.title, item.desc].filter(Boolean).join(' ') || `おみくじ${index + 1}`,
+                    rarity: item.rarity || '',
+                    message: item.message || [item.title, item.desc].filter(Boolean).join(' ') || `おみくじ${index + 1}`,
                     color: item.color || item.neon_color || '#39ff14'
                   }));
                 }
@@ -640,7 +669,6 @@
       const headerText = document.getElementById('cfg-header-text').value.trim();
       const bgColor = document.getElementById('cfg-bg-color').value;
       const notice = document.getElementById('cfg-notice').value.trim();
-      collectOmikujiInputs();
 
 
       // カウントダウン収集
@@ -688,7 +716,6 @@
         { key: 'submissions', value: JSON.stringify(submissionsData) },
         { key: 'links', value: JSON.stringify(linksData) },
         { key: 'custom_tags', value: JSON.stringify(customTags) },
-        { key: 'omikuji_list', value: JSON.stringify(omikujiList) },
       ];
 
 
@@ -765,12 +792,15 @@
           const title = document.createElement('div');
           title.className = 'song-title-head';
           title.textContent = '休日';
+          const description = document.createElement('div');
+          description.className = 'form-label';
+          description.textContent = 'あなたのおみくじ、あした誰かが引くかも？';
           const addOmikujiButton = document.createElement('button');
           addOmikujiButton.type = 'button';
           addOmikujiButton.className = 'add-btn';
           addOmikujiButton.textContent = '🎲 おみくじを追加';
           addOmikujiButton.onclick = () => openHolidayOmikujiModal();
-          slide.append(title, addOmikujiButton);
+          slide.append(title, description, addOmikujiButton);
         } else {
           const list = document.createElement('div');
           list.className = 'schedule-list';
@@ -1098,7 +1128,7 @@
       const item = omikujiList[Math.floor(Math.random() * omikujiList.length)];
       localStorage.setItem('daily_omikuji', JSON.stringify({
         date: todayISODate(),
-        message: item.message,
+        message: item.rarity ? `${item.rarity}！${item.message}` : item.message,
         color: item.color
       }));
       renderTicker(true);
@@ -1147,18 +1177,12 @@
 
 
     function openAuthModal() { document.getElementById('pwd-input').value = ''; document.getElementById('auth-modal').classList.add('active'); }
-    function closeAuthModal() {
-      document.getElementById('auth-modal').classList.remove('active');
-      if (!settingsAuthorized) openHolidayOmikujiAfterAuth = false;
-    }
+    function closeAuthModal() { document.getElementById('auth-modal').classList.remove('active'); }
     function verifyPassword() {
       const input = document.getElementById('pwd-input').value;
       if ((portalData.customPassword && input === portalData.customPassword) || input === _0x9b) {
-        const shouldOpenHolidayOmikuji = openHolidayOmikujiAfterAuth;
-        openHolidayOmikujiAfterAuth = false;
         settingsAuthorized = true;
         closeAuthModal(); showSettings();
-        if (shouldOpenHolidayOmikuji) openOmikujiModal(true);
       } else { alert('パスワードが違います'); }
     }
 
@@ -1230,13 +1254,33 @@
         const row = document.createElement('div');
         row.className = 'edit-item-row';
         if (item.id) row.dataset.itemId = item.id;
+        const rarity = document.createElement('select');
+        rarity.className = 'input omikuji-rarity';
+        rarity.setAttribute('aria-label', 'レア度');
+        const noRarity = document.createElement('option');
+        noRarity.value = '';
+        noRarity.textContent = 'レア度なし';
+        rarity.append(noRarity);
+        for (const value of ['大吉', '中吉', '小吉', '吉', '末吉', '凶', '大凶']) {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = value;
+          rarity.append(option);
+        }
+        if (item.rarity && ![...rarity.options].some(option => option.value === item.rarity)) {
+          const option = document.createElement('option');
+          option.value = item.rarity;
+          option.textContent = item.rarity;
+          rarity.append(option);
+        }
+        rarity.value = item.rarity || '';
         const message = document.createElement('input');
         message.type = 'text';
         message.className = 'input';
         message.classList.add('omikuji-message');
         message.maxLength = 160;
         message.value = item.message || '';
-        message.placeholder = '大吉！〜〜〜';
+        message.placeholder = 'おみくじの内容';
         message.style.flex = '2';
         const color = document.createElement('input');
         color.className = 'input';
@@ -1253,7 +1297,7 @@
           omikujiList.splice(index, 1);
           renderOmikujiEditor();
         };
-        row.append(message, color, remove);
+        row.append(rarity, message, color, remove);
         container.append(row);
       });
     }
@@ -1261,6 +1305,7 @@
     function collectOmikujiInputs() {
       const rows = [...document.querySelectorAll('#omikuji-admin-list .edit-item-row')];
       omikujiList = rows.map(row => ({
+        rarity: row.querySelector('.omikuji-rarity').value,
         message: row.querySelector('.omikuji-message').value.trim(),
         color: row.querySelector('input[type="color"]').value
       }));
@@ -1273,12 +1318,71 @@
     }
 
     function openHolidayOmikujiModal() {
-      if (!settingsAuthorized) {
-        openHolidayOmikujiAfterAuth = true;
-        openAuthModal();
+      document.getElementById('holiday-omikuji-rarity').value = '大吉';
+      document.getElementById('holiday-omikuji-message').value = '';
+      document.getElementById('holiday-omikuji-color').value = '#39ff14';
+      document.getElementById('holiday-omikuji-status').textContent = '';
+      document.getElementById('holiday-omikuji-submit').disabled = false;
+      document.getElementById('holiday-omikuji-modal').classList.add('active');
+    }
+
+    function closeHolidayOmikujiModal() {
+      document.getElementById('holiday-omikuji-modal').classList.remove('active');
+    }
+
+    async function submitHolidayOmikuji() {
+      const rarityInput = document.getElementById('holiday-omikuji-rarity');
+      const messageInput = document.getElementById('holiday-omikuji-message');
+      const colorInput = document.getElementById('holiday-omikuji-color');
+      const status = document.getElementById('holiday-omikuji-status');
+      const submitButton = document.getElementById('holiday-omikuji-submit');
+      const message = messageInput.value.trim();
+      if (!message) {
+        status.textContent = 'おみくじの内容を入力してください。';
+        messageInput.focus();
         return;
       }
-      openOmikujiModal(true);
+      if (!supabaseClient) {
+        status.textContent = 'Supabaseに接続できないため、共有できません。';
+        return;
+      }
+
+      submitButton.disabled = true;
+      status.textContent = 'おみくじを共有しています...';
+      try {
+        const { data, error: readError } = await supabaseClient
+          .from('settings')
+          .select('value')
+          .eq('key', 'omikuji_list')
+          .maybeSingle();
+        if (readError) throw readError;
+
+        let items = omikujiList.filter(item => item.message);
+        if (data && data.value) {
+          const savedItems = JSON.parse(data.value);
+          if (!Array.isArray(savedItems)) throw new Error('おみくじ設定の形式が正しくありません。');
+          items = savedItems.map((item, index) => ({
+            rarity: item.rarity || '',
+            message: item.message || [item.title, item.desc].filter(Boolean).join(' ') || `おみくじ${index + 1}`,
+            color: item.color || item.neon_color || '#39ff14'
+          }));
+        }
+        const newItem = { rarity: rarityInput.value, message, color: colorInput.value };
+        items.push(newItem);
+        const { error: saveError } = await supabaseClient
+          .from('settings')
+          .upsert({ key: 'omikuji_list', value: JSON.stringify(items) }, { onConflict: 'key' });
+        if (saveError) throw saveError;
+
+        omikujiList = items;
+        renderTicker();
+        status.textContent = 'ありがとう！みんなのおみくじに追加されました。';
+        submitButton.textContent = '共有しました！';
+      } catch (error) {
+        console.error('おみくじの共有に失敗しました:', error);
+        status.textContent = `共有に失敗しました: ${error.message || error}`;
+        submitButton.disabled = false;
+      }
     }
 
     function closeOmikujiModal() {
