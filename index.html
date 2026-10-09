@@ -161,6 +161,12 @@
     .submission-title { font-size: 0.9rem; font-weight: 700; color: var(--text); width: 110px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .submission-date { font-size: 0.73rem; font-weight: 700; color: var(--accent-red); background: rgba(255, 59, 48, 0.1); padding: 3px 8px; border-radius: 6px; flex-shrink: 0; white-space: nowrap; }
     .submission-detail { font-size: 0.78rem; color: var(--sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    @media (max-width: 600px) {
+      .submission-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 8px; }
+      .submission-title { width: auto; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+      .submission-date { justify-self: end; }
+      .submission-detail { grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+    }
 
 
     /* LINK */
@@ -553,11 +559,15 @@
     let countdownTouchStart = null;
     let lastSettingsFetchAt = 0;
     let settingsFetchInProgress = false;
+    let submissionsLoadedFromSupabase = false;
+    let submissionExpiryInProgress = false;
+    let lastAutoScheduleDate = new Date().getHours() >= 18 ? todayISODate() : '';
 
 
     async function fetchAllFromSupabase(showErrors = true) {
       if (settingsFetchInProgress) return;
       settingsFetchInProgress = true;
+      submissionsLoadedFromSupabase = false;
       lastSettingsFetchAt = Date.now();
       try {
         if (supabaseClient) {
@@ -583,7 +593,19 @@
             if (config.event_list) { try { eventsData = JSON.parse(config.event_list); } catch(e){} }
             if (config.schedules) { try { scheduleData = JSON.parse(config.schedules); } catch(e){} }
             if (config.links) { try { linksData = JSON.parse(config.links); } catch(e){} }
-            if (config.submissions) { try { submissionsData = JSON.parse(config.submissions); } catch(e){} }
+            if (Object.prototype.hasOwnProperty.call(config, 'submissions')) {
+              try {
+                const savedSubmissions = JSON.parse(config.submissions);
+                if (Array.isArray(savedSubmissions)) {
+                  submissionsData = savedSubmissions;
+                  submissionsLoadedFromSupabase = true;
+                } else {
+                  console.error('提出物設定の形式が正しくありません。');
+                }
+              } catch (err) {
+                console.error('提出物設定を読み込めません:', err);
+              }
+            }
             if (config.custom_tags) { try { customTags = JSON.parse(config.custom_tags); } catch(e){} }
             if (config.omikuji_list) {
               try {
@@ -622,6 +644,47 @@
         renderHomeSubmissions();
         renderHomeLinks();
         restoreDailyOmikuji();
+        void expireTodaySubmissions();
+      }
+    }
+
+    async function expireTodaySubmissions() {
+      const now = new Date();
+      if (
+        now.getHours() < 18 ||
+        document.hidden ||
+        !document.getElementById('settings-view').classList.contains('hidden') ||
+        !submissionsLoadedFromSupabase ||
+        settingsFetchInProgress ||
+        submissionExpiryInProgress
+      ) return;
+
+      const todayMonth = String(now.getMonth() + 1);
+      const todayDay = String(now.getDate());
+      const remaining = submissionsData.filter(item =>
+        !(String(Number(item.month)) === todayMonth && String(Number(item.day)) === todayDay)
+      );
+      if (remaining.length === submissionsData.length) return;
+      if (!supabaseClient) {
+        console.error('提出物を自動削除できません: Supabaseに接続されていません。');
+        return;
+      }
+
+      submissionExpiryInProgress = true;
+      try {
+        const { error } = await supabaseClient
+          .from('settings')
+          .upsert([{ key: 'submissions', value: JSON.stringify(remaining) }], { onConflict: 'key' });
+        if (error) {
+          console.error('期限切れ提出物の削除に失敗しました:', error);
+          return;
+        }
+        submissionsData = remaining;
+        renderHomeSubmissions();
+      } catch (error) {
+        console.error('期限切れ提出物の削除に失敗しました:', error);
+      } finally {
+        submissionExpiryInProgress = false;
       }
     }
 
@@ -750,6 +813,12 @@
       const now = new Date();
       document.getElementById('date').textContent = `${now.getMonth() + 1}/${now.getDate()} (${days[now.getDay()]})`;
       document.getElementById('time').textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      const today = formatISODate(now);
+      if (now.getHours() >= 18 && lastAutoScheduleDate !== today) {
+        lastAutoScheduleDate = today;
+        goToScheduleDay(1);
+        void expireTodaySubmissions();
+      }
     }
 
 
@@ -1018,7 +1087,10 @@
       let hasUrgent = false;
 
 
-      submissionsData.forEach(item => {
+      const isTomorrow = item => String(Number(item.month)) === tMonth && String(Number(item.day)) === tDay;
+      const sortedSubmissions = [...submissionsData].sort((left, right) => Number(isTomorrow(right)) - Number(isTomorrow(left)));
+
+      sortedSubmissions.forEach(item => {
         const dateStr = (item.month && item.day) ? `${item.month}月${item.day}日` : '期限なし';
 
 
@@ -1033,7 +1105,7 @@
 
 
         // 明日締め切りの判定
-        if (item.month === tMonth && item.day === tDay) {
+        if (isTomorrow(item)) {
           hasUrgent = true;
           const uRow = row.cloneNode(true);
           urgentContainer.appendChild(uRow);
@@ -1214,7 +1286,7 @@
     }
 
 
-    function showHome() { document.getElementById('settings-view').classList.add('hidden'); document.getElementById('home-view').classList.remove('hidden'); settingsAuthorized = false; renderHomeSchedule(); renderHomeSubmissions(); refreshSettingsIfStale(); }
+    function showHome() { document.getElementById('settings-view').classList.add('hidden'); document.getElementById('home-view').classList.remove('hidden'); settingsAuthorized = false; renderHomeSchedule(); renderHomeSubmissions(); refreshSettingsIfStale(); void expireTodaySubmissions(); }
 
 
     function renderDateSelectBar() {
@@ -1556,10 +1628,11 @@
         renderTicker();
         scheduleOmikujiMidnightReset();
         refreshSettingsIfStale();
+        void expireTodaySubmissions();
       }
     });
     window.addEventListener('focus', refreshSettingsIfStale);
-    updateClock(); setInterval(updateClock, 1000); fetchWeather();
+    updateClock(); setInterval(updateClock, 1000); setInterval(expireTodaySubmissions, 30000); fetchWeather();
     fetchAllFromSupabase();
   </script>
 </body>
