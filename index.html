@@ -143,15 +143,6 @@
     .schedule-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; touch-action: pan-x pan-y; }
     .schedule-track::-webkit-scrollbar { display: none; }
     .schedule-day-slide { flex: 0 0 100%; min-width: 100%; scroll-snap-align: center; scroll-snap-stop: always; padding: 1px; }
-    .thread-form { display: flex; gap: 6px; margin-bottom: 10px; }
-    .thread-form .input { min-width: 0; flex: 1; }
-    .thread-form button { flex: 0 0 auto; border: 0; border-radius: 9px; padding: 0 12px; background: var(--accent-blue); color: white; font-weight: 700; }
-    .thread-form button:disabled { opacity: .5; }
-    .thread-list { display: flex; flex-direction: column; gap: 7px; max-height: 300px; overflow-y: auto; }
-    .thread-post { padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.04); }
-    .thread-post p { margin-top: 3px; overflow-wrap: anywhere; }
-    .thread-meta { font-size: .72rem; color: var(--sub); }
-    .thread-refresh { margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 5px 9px; background: rgba(0,0,0,.03); color: var(--text); font-weight: 600; }
     @media (prefers-reduced-motion: reduce) { .schedule-track, .insta-slide-wrap { scroll-behavior: auto; transition-duration: 0.01ms; } }
     .slot-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(0, 0, 0, 0.03); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03); }
     .slot-row.empty { opacity: 0.45; background: transparent; }
@@ -552,12 +543,9 @@
     let selectedEditDateKey = '';
 
 
-    const THREAD_COOLDOWN_MS = 20000;
-    const THREAD_CACHE_MS = 60000;
     const SETTINGS_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
-    const HOLIDAY_THREAD_CACHE_KEY = 'shared';
-    const threadCache = new Map();
     let settingsAuthorized = false;
+    let openHolidayOmikujiAfterAuth = false;
     let midnightTimer = null;
     let scheduleScrollTimer = null;
     let countdownTouchStart = null;
@@ -776,12 +764,13 @@
         if (dayData.tag === '休み') {
           const title = document.createElement('div');
           title.className = 'song-title-head';
-          title.textContent = '休日の一言スレッド';
-          slide.append(title);
-          const board = document.createElement('div');
-          board.className = 'thread-board';
-          slide.append(board);
-          if (offset === currentHomeOffset) renderHolidayThread(board, formatISODate(targetDate));
+          title.textContent = '休日';
+          const addOmikujiButton = document.createElement('button');
+          addOmikujiButton.type = 'button';
+          addOmikujiButton.className = 'add-btn';
+          addOmikujiButton.textContent = '🎲 おみくじを追加';
+          addOmikujiButton.onclick = () => openHolidayOmikujiModal();
+          slide.append(title, addOmikujiButton);
         } else {
           const list = document.createElement('div');
           list.className = 'schedule-list';
@@ -848,11 +837,6 @@
       });
       updateScheduleHeader();
       renderScheduleDots();
-      const targetDate = getDateObj(currentHomeOffset);
-      if ((scheduleData[scheduleKeyForDate(targetDate)] || {}).tag === '休み') {
-        const slide = document.querySelectorAll('.schedule-day-slide')[currentHomeOffset];
-        if (slide && !slide.querySelector('.thread-form')) renderHolidayThread(slide.querySelector('.thread-board'), formatISODate(targetDate));
-      }
     }
 
     function handleScheduleScroll() {
@@ -864,136 +848,11 @@
         currentHomeOffset = offset;
         updateScheduleHeader();
         renderScheduleDots();
-        const targetDate = getDateObj(currentHomeOffset);
-        if ((scheduleData[scheduleKeyForDate(targetDate)] || {}).tag === '休み') {
-          const slide = document.querySelectorAll('.schedule-day-slide')[currentHomeOffset];
-          if (slide) renderHolidayThread(slide.querySelector('.thread-board'), formatISODate(targetDate));
-        }
       }, 100);
     }
 
     function prevHomeOffset() { if (currentHomeOffset > 0) goToScheduleDay(currentHomeOffset - 1); }
     function nextHomeOffset() { if (currentHomeOffset < 7) goToScheduleDay(currentHomeOffset + 1); }
-
-    async function renderHolidayThread(container, boardDate, force = false) {
-      if (!container) return;
-      const cached = threadCache.get(HOLIDAY_THREAD_CACHE_KEY);
-      if (!force && cached && Date.now() - cached.time < THREAD_CACHE_MS) {
-        drawHolidayThread(container, cached.posts, boardDate);
-        return;
-      }
-      if (container.dataset.loading === HOLIDAY_THREAD_CACHE_KEY) return;
-      if (!supabaseClient) {
-        container.textContent = '掲示板に接続できません。';
-        return;
-      }
-      container.dataset.loading = HOLIDAY_THREAD_CACHE_KEY;
-      container.textContent = 'コメントを読み込み中…';
-      const { data, error } = await supabaseClient
-        .from('holiday_posts')
-        .select('id, nickname, message, created_at')
-        .order('created_at', { ascending: false })
-        .limit(20);
-      if (error) {
-        if (container.dataset.loading === HOLIDAY_THREAD_CACHE_KEY) delete container.dataset.loading;
-        container.textContent = '掲示板を読み込めませんでした。';
-        console.error('掲示板の取得に失敗しました:', error);
-        return;
-      }
-      if (container.dataset.loading === HOLIDAY_THREAD_CACHE_KEY) delete container.dataset.loading;
-      threadCache.set(HOLIDAY_THREAD_CACHE_KEY, { time: Date.now(), posts: data || [] });
-      drawHolidayThread(container, data || [], boardDate);
-    }
-
-    function drawHolidayThread(container, posts, boardDate) {
-      container.replaceChildren();
-      const refresh = document.createElement('button');
-      refresh.type = 'button';
-      refresh.className = 'thread-refresh';
-      refresh.textContent = 'コメントを更新';
-      refresh.onclick = () => {
-        threadCache.delete(HOLIDAY_THREAD_CACHE_KEY);
-        renderHolidayThread(container, boardDate, true);
-      };
-      const form = document.createElement('form');
-      form.className = 'thread-form';
-      const nickname = document.createElement('input');
-      nickname.className = 'input';
-      nickname.type = 'text';
-      nickname.maxLength = 32;
-      nickname.required = true;
-      nickname.placeholder = 'ニックネーム';
-      nickname.value = localStorage.getItem('holiday_nickname') || '';
-      const message = document.createElement('input');
-      message.className = 'input';
-      message.type = 'text';
-      message.maxLength = 280;
-      message.required = true;
-      message.placeholder = '一言コメント';
-      const submit = document.createElement('button');
-      submit.type = 'submit';
-      submit.textContent = '投稿';
-      const status = document.createElement('div');
-      status.className = 'thread-meta';
-      const list = document.createElement('div');
-      list.className = 'thread-list';
-      form.append(nickname, message, submit);
-      container.append(refresh, form, status, list);
-
-      const cooldownKey = 'holiday_post_cooldown_until';
-      let cooldownTimer;
-      const updateCooldown = () => {
-        const remaining = Number(localStorage.getItem(cooldownKey) || 0) - Date.now();
-        submit.disabled = remaining > 0;
-        status.textContent = remaining > 0 ? `次の投稿まで ${Math.ceil(remaining / 1000)} 秒` : '';
-        if (remaining <= 0 && cooldownTimer) clearInterval(cooldownTimer);
-      };
-      updateCooldown();
-      if (submit.disabled) cooldownTimer = setInterval(updateCooldown, 1000);
-
-      form.addEventListener('submit', async event => {
-        event.preventDefault();
-        const cleanNickname = nickname.value.trim();
-        const cleanMessage = message.value.trim();
-        if (!cleanNickname || !cleanMessage) return;
-        updateCooldown();
-        if (submit.disabled) return;
-        submit.disabled = true;
-        const { error } = await supabaseClient.from('holiday_posts').insert({
-          board_date: boardDate,
-          nickname: cleanNickname,
-          message: cleanMessage
-        });
-        if (error) {
-          status.textContent = '投稿できませんでした。';
-          console.error('掲示板への投稿に失敗しました:', error);
-          submit.disabled = false;
-          return;
-        }
-        localStorage.setItem('holiday_nickname', cleanNickname);
-        localStorage.setItem(cooldownKey, String(Date.now() + THREAD_COOLDOWN_MS));
-        threadCache.delete(HOLIDAY_THREAD_CACHE_KEY);
-        await renderHolidayThread(container, boardDate, true);
-      });
-
-      for (const post of [...posts].reverse()) {
-        const row = document.createElement('article');
-        row.className = 'thread-post';
-        const author = document.createElement('div');
-        author.className = 'thread-meta';
-        author.textContent = `${post.nickname} · ${new Date(post.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}`;
-        const text = document.createElement('p');
-        text.textContent = post.message;
-        row.append(author, text);
-        list.append(row);
-      }
-      if (!posts.length) {
-        const empty = document.createElement('div');
-        empty.className = 'thread-meta';
-        empty.textContent = '最初の一言を投稿してください。';
-        list.append(empty);
-      }
-    }
 
 
     function renderCountdowns() {
@@ -1288,12 +1147,18 @@
 
 
     function openAuthModal() { document.getElementById('pwd-input').value = ''; document.getElementById('auth-modal').classList.add('active'); }
-    function closeAuthModal() { document.getElementById('auth-modal').classList.remove('active'); }
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.remove('active');
+      if (!settingsAuthorized) openHolidayOmikujiAfterAuth = false;
+    }
     function verifyPassword() {
       const input = document.getElementById('pwd-input').value;
       if ((portalData.customPassword && input === portalData.customPassword) || input === _0x9b) {
+        const shouldOpenHolidayOmikuji = openHolidayOmikujiAfterAuth;
+        openHolidayOmikujiAfterAuth = false;
         settingsAuthorized = true;
         closeAuthModal(); showSettings();
+        if (shouldOpenHolidayOmikuji) openOmikujiModal(true);
       } else { alert('パスワードが違います'); }
     }
 
@@ -1401,9 +1266,19 @@
       }));
     }
 
-    function openOmikujiModal() {
+    function openOmikujiModal(addItem = false) {
       renderOmikujiEditor();
+      if (addItem) addOmikujiItem();
       document.getElementById('omikuji-modal').classList.add('active');
+    }
+
+    function openHolidayOmikujiModal() {
+      if (!settingsAuthorized) {
+        openHolidayOmikujiAfterAuth = true;
+        openAuthModal();
+        return;
+      }
+      openOmikujiModal(true);
     }
 
     function closeOmikujiModal() {
