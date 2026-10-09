@@ -167,8 +167,8 @@
 
     /* 時間割 */
     .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
-    .schedule-card-header { justify-content: flex-start; }
-    .push-notification-switch { display: inline-flex; align-items: center; margin-right: 4px; cursor: pointer; }
+    .schedule-card-header { justify-content: space-between; }
+    .push-notification-switch { display: inline-flex; align-items: center; margin-left: auto; cursor: pointer; }
     .schedule-title-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .schedule-title { font-size: clamp(0.95rem, 1.3vw, 1.1rem); font-weight: 700; }
     .schedule-badge { font-size: 0.78rem; background: var(--text); color: #fff; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
@@ -380,6 +380,11 @@
     <!-- 📅 時間割 -->
     <div class="card">
       <div class="schedule-header schedule-card-header">
+        <div class="schedule-title-group">
+          <span class="schedule-title">時間割</span>
+          <span id="schedule-target-label" class="schedule-badge">--</span>
+          <span id="schedule-tag-label-date" class="schedule-tag-badge hidden">#休み</span>
+        </div>
         <label class="push-notification-switch">
           <input
             id="push-notification-toggle"
@@ -387,14 +392,8 @@
             type="checkbox"
             role="switch"
             aria-label="明日の時間割と提出物の通知"
-            disabled
             onchange="togglePushSubscription()">
         </label>
-        <div class="schedule-title-group">
-          <span class="schedule-title">時間割</span>
-          <span id="schedule-target-label" class="schedule-badge">--</span>
-          <span id="schedule-tag-label-date" class="schedule-tag-badge hidden">#休み</span>
-        </div>
       </div>
       <p id="push-notification-status" class="push-notification-status" role="status" aria-live="polite"></p>
       
@@ -1717,17 +1716,16 @@
         return;
       }
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js');
-        const subscription = await registration.pushManager.getSubscription();
+        const registration = await navigator.serviceWorker.getRegistration();
+        const subscription = registration
+          ? await registration.pushManager.getSubscription()
+          : null;
         setPushButtonState(Boolean(subscription));
-        toggle.disabled = false;
         if (Notification.permission === 'denied') {
           setPushStatus('通知がブロックされています。ブラウザーのサイト設定から許可してください。');
         }
       } catch (error) {
-        console.error('Service Workerの登録に失敗しました:', error);
-        toggle.disabled = true;
-        setPushStatus('通知機能を初期化できませんでした。ページを再読み込みしてください。');
+        console.warn('保存済みの通知購読状態を確認できませんでした:', error);
       }
     }
 
@@ -1759,8 +1757,10 @@
             return;
           }
         }
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
+        const registration = await navigator.serviceWorker.getRegistration();
+        const subscription = registration
+          ? await registration.pushManager.getSubscription()
+          : null;
 
         if (!enable) {
           if (!supabaseClient) throw new Error('Supabaseに接続できないため、通知を解除できません。');
@@ -1785,7 +1785,9 @@
         }
 
         if (!supabaseClient) throw new Error('Supabaseに接続できません。');
-        const activeSubscription = subscription || await registration.pushManager.subscribe({
+        if (!registration) await navigator.serviceWorker.register('./sw.js');
+        const activeRegistration = await navigator.serviceWorker.ready;
+        const activeSubscription = subscription || await activeRegistration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
         });
