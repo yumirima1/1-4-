@@ -143,6 +143,8 @@
     .schedule-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; touch-action: pan-x pan-y; }
     .schedule-track::-webkit-scrollbar { display: none; }
     .schedule-day-slide { flex: 0 0 100%; min-width: 100%; scroll-snap-align: center; scroll-snap-stop: always; padding: 1px; }
+    .holiday-omikuji-form { display: grid; gap: 8px; margin-top: 10px; }
+    .holiday-omikuji-form .input { width: 100%; }
     @media (prefers-reduced-motion: reduce) { .schedule-track, .insta-slide-wrap { scroll-behavior: auto; transition-duration: 0.01ms; } }
     .slot-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(0, 0, 0, 0.03); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03); }
     .slot-row.empty { opacity: 0.45; background: transparent; }
@@ -201,7 +203,6 @@
     .modal-box { background: var(--card); width: 90%; max-width: 380px; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; }
     .modal-close-btn { background: rgba(0,0,0,0.06); border: none; font-size: 1.1rem; width: 30px; height: 30px; border-radius: 15px; cursor: pointer; color: var(--sub); font-weight: bold; display: flex; align-items: center; justify-content: center; }
-    #holiday-omikuji-modal .input { width: 100%; }
 
 
     .tag-list-chips { display: flex; flex-wrap: wrap; gap: 8px; max-height: 180px; overflow-y: auto; padding: 4px; }
@@ -216,8 +217,7 @@
       #settings-view .select { min-width: 0; max-width: 100%; font-size: 16px; }
       #settings-view button,
       #tag-modal button,
-      #omikuji-modal button,
-      #holiday-omikuji-modal button { min-height: 44px; }
+      #omikuji-modal button { min-height: 44px; }
 
       .settings-header { position: sticky; top: 0; z-index: 2; padding: 4px 0 10px; background: var(--card); }
       .settings-header .settings-btn { min-height: 44px; padding: 8px 14px; }
@@ -509,32 +509,6 @@
     </div>
   </div>
 
-  <div id="holiday-omikuji-modal" class="modal" onclick="closeHolidayOmikujiModal()">
-    <div class="modal-box" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <div style="font-weight:700; font-size:1.1rem;">🎲 おみくじを追加</div>
-        <button type="button" class="modal-close-btn" onclick="closeHolidayOmikujiModal()">✕</button>
-      </div>
-      <div class="form-label">あなたのおみくじ、あした誰かが引くかも？</div>
-      <label class="form-label" for="holiday-omikuji-rarity">レア度</label>
-      <select id="holiday-omikuji-rarity" class="input">
-        <option value="大吉">大吉</option>
-        <option value="中吉">中吉</option>
-        <option value="小吉">小吉</option>
-        <option value="吉">吉</option>
-        <option value="末吉">末吉</option>
-        <option value="凶">凶</option>
-        <option value="大凶">大凶</option>
-      </select>
-      <label class="form-label" for="holiday-omikuji-message">内容</label>
-      <textarea id="holiday-omikuji-message" class="input" maxlength="160" rows="3" placeholder="今日の運勢やひとこと"></textarea>
-      <label class="form-label" for="holiday-omikuji-color">おみくじの色</label>
-      <input id="holiday-omikuji-color" type="color" class="input" value="#39ff14">
-      <div id="holiday-omikuji-status" class="form-label" aria-live="polite"></div>
-      <button id="holiday-omikuji-submit" type="button" class="save-btn" onclick="submitHolidayOmikuji()">おみくじを共有する</button>
-    </div>
-  </div>
-
   <script>
     const SUPABASE_URL = "https://kvlruwtidwvopfsphnqc.supabase.co";
     const SUPABASE_PUBLIC_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2bHJ1d3RpZHd2b3Bmc3BobnFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzMjkxNzUsImV4cCI6MjEwNjkwNTE3NX0.Iqc7ezCNKaU68UmgBOEsETdQjZHgbhKXOx6mK0utvBk";
@@ -795,12 +769,48 @@
           const description = document.createElement('div');
           description.className = 'form-label';
           description.textContent = 'あなたのおみくじ、あした誰かが引くかも？';
-          const addOmikujiButton = document.createElement('button');
-          addOmikujiButton.type = 'button';
-          addOmikujiButton.className = 'add-btn';
-          addOmikujiButton.textContent = '🎲 おみくじを追加';
-          addOmikujiButton.onclick = () => openHolidayOmikujiModal();
-          slide.append(title, description, addOmikujiButton);
+          const form = document.createElement('form');
+          form.className = 'holiday-omikuji-form';
+          const rarityLabel = document.createElement('label');
+          rarityLabel.className = 'form-label';
+          rarityLabel.htmlFor = `holiday-omikuji-rarity-${offset}`;
+          rarityLabel.textContent = 'レア度（自由記入）';
+          const rarity = document.createElement('input');
+          rarity.type = 'text';
+          rarity.id = `holiday-omikuji-rarity-${offset}`;
+          rarity.className = 'input holiday-omikuji-rarity';
+          rarity.maxLength = 32;
+          rarity.placeholder = '例: 超大吉、伝説級';
+          const messageLabel = document.createElement('label');
+          messageLabel.className = 'form-label';
+          messageLabel.htmlFor = `holiday-omikuji-message-${offset}`;
+          messageLabel.textContent = 'おみくじの内容';
+          const message = document.createElement('textarea');
+          message.id = `holiday-omikuji-message-${offset}`;
+          message.className = 'input holiday-omikuji-message';
+          message.maxLength = 160;
+          message.rows = 2;
+          message.required = true;
+          message.placeholder = '今日の運勢やひとこと';
+          const colorLabel = document.createElement('label');
+          colorLabel.className = 'form-label';
+          colorLabel.htmlFor = `holiday-omikuji-color-${offset}`;
+          colorLabel.textContent = 'おみくじの色';
+          const color = document.createElement('input');
+          color.type = 'color';
+          color.id = `holiday-omikuji-color-${offset}`;
+          color.className = 'input holiday-omikuji-color';
+          color.value = '#39ff14';
+          const status = document.createElement('div');
+          status.className = 'form-label holiday-omikuji-status';
+          status.setAttribute('aria-live', 'polite');
+          const submit = document.createElement('button');
+          submit.type = 'submit';
+          submit.className = 'add-btn';
+          submit.textContent = '🎲 おみくじを共有する';
+          form.append(rarityLabel, rarity, messageLabel, message, colorLabel, color, status, submit);
+          form.addEventListener('submit', submitHolidayOmikuji);
+          slide.append(title, description, form);
         } else {
           const list = document.createElement('div');
           list.className = 'schedule-list';
@@ -1254,25 +1264,12 @@
         const row = document.createElement('div');
         row.className = 'edit-item-row';
         if (item.id) row.dataset.itemId = item.id;
-        const rarity = document.createElement('select');
+        const rarity = document.createElement('input');
+        rarity.type = 'text';
         rarity.className = 'input omikuji-rarity';
         rarity.setAttribute('aria-label', 'レア度');
-        const noRarity = document.createElement('option');
-        noRarity.value = '';
-        noRarity.textContent = 'レア度なし';
-        rarity.append(noRarity);
-        for (const value of ['大吉', '中吉', '小吉', '吉', '末吉', '凶', '大凶']) {
-          const option = document.createElement('option');
-          option.value = value;
-          option.textContent = value;
-          rarity.append(option);
-        }
-        if (item.rarity && ![...rarity.options].some(option => option.value === item.rarity)) {
-          const option = document.createElement('option');
-          option.value = item.rarity;
-          option.textContent = item.rarity;
-          rarity.append(option);
-        }
+        rarity.maxLength = 32;
+        rarity.placeholder = 'レア度（自由記入）';
         rarity.value = item.rarity || '';
         const message = document.createElement('input');
         message.type = 'text';
@@ -1317,25 +1314,15 @@
       document.getElementById('omikuji-modal').classList.add('active');
     }
 
-    function openHolidayOmikujiModal() {
-      document.getElementById('holiday-omikuji-rarity').value = '大吉';
-      document.getElementById('holiday-omikuji-message').value = '';
-      document.getElementById('holiday-omikuji-color').value = '#39ff14';
-      document.getElementById('holiday-omikuji-status').textContent = '';
-      document.getElementById('holiday-omikuji-submit').disabled = false;
-      document.getElementById('holiday-omikuji-modal').classList.add('active');
-    }
-
-    function closeHolidayOmikujiModal() {
-      document.getElementById('holiday-omikuji-modal').classList.remove('active');
-    }
-
-    async function submitHolidayOmikuji() {
-      const rarityInput = document.getElementById('holiday-omikuji-rarity');
-      const messageInput = document.getElementById('holiday-omikuji-message');
-      const colorInput = document.getElementById('holiday-omikuji-color');
-      const status = document.getElementById('holiday-omikuji-status');
-      const submitButton = document.getElementById('holiday-omikuji-submit');
+    async function submitHolidayOmikuji(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const rarityInput = form.querySelector('.holiday-omikuji-rarity');
+      const messageInput = form.querySelector('.holiday-omikuji-message');
+      const colorInput = form.querySelector('.holiday-omikuji-color');
+      const status = form.querySelector('.holiday-omikuji-status');
+      const submitButton = form.querySelector('button[type="submit"]');
+      if (submitButton.disabled) return;
       const message = messageInput.value.trim();
       if (!message) {
         status.textContent = 'おみくじの内容を入力してください。';
@@ -1377,7 +1364,9 @@
         omikujiList = items;
         renderTicker();
         status.textContent = 'ありがとう！みんなのおみくじに追加されました。';
-        submitButton.textContent = '共有しました！';
+        form.reset();
+        colorInput.value = '#39ff14';
+        submitButton.disabled = false;
       } catch (error) {
         console.error('おみくじの共有に失敗しました:', error);
         status.textContent = `共有に失敗しました: ${error.message || error}`;
