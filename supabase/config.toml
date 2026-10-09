@@ -1,0 +1,7 @@
+project_id = "1-4-"
+
+[functions.push-subscriptions]
+verify_jwt = true
+
+[functions.send-daily-push]
+verify_jwt = false
