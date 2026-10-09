@@ -126,7 +126,7 @@
     .push-notification-toggle:checked::after { transform: translateX(18px); }
     .push-notification-toggle:focus-visible { outline: 3px solid rgba(0, 122, 255, 0.45); outline-offset: 3px; }
     .push-notification-toggle:disabled { cursor: wait; opacity: 0.65; }
-    .push-notification-status { display: none; margin: -4px 0 8px; font-size: 0.8rem; color: var(--sub); }
+    .push-notification-status { display: none; margin: -4px 0 8px; font-size: 0.8rem; line-height: 1.45; color: var(--sub); }
     .push-notification-status:not(:empty) { display: block; }
     @media (prefers-reduced-motion: reduce) {
       .push-notification-toggle, .push-notification-toggle::after { transition: none; }
@@ -392,7 +392,7 @@
             type="checkbox"
             role="switch"
             aria-label="明日の時間割と提出物の通知"
-            onchange="togglePushSubscription()">
+            aria-describedby="push-notification-status">
         </label>
       </div>
       <p id="push-notification-status" class="push-notification-status" role="status" aria-live="polite"></p>
@@ -1711,8 +1711,6 @@
     async function initializePushNotifications() {
       const toggle = document.getElementById('push-notification-toggle');
       if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-        if (isIosDevice() && !isStandaloneApp()) return;
-        toggle.disabled = true;
         return;
       }
       try {
@@ -1731,9 +1729,10 @@
 
     async function togglePushSubscription() {
       const toggle = document.getElementById('push-notification-toggle');
+      if (toggle.disabled) return;
       const enable = toggle.checked;
       toggle.disabled = true;
-      setPushStatus('');
+      setPushStatus(enable ? '通知を設定しています…' : '通知を解除しています…');
       try {
         if (enable && isIosDevice() && !isStandaloneApp()) {
           alert('iOSをご利用の方は、画面下の共有ボタンから「ホーム画面に追加」してアプリとして開いた後、通知を許可してください。');
@@ -1741,7 +1740,7 @@
           return;
         }
         if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-          throw new Error('このブラウザーはWeb Push通知に対応していません。');
+          throw new Error('このブラウザーまたは接続方法はWeb Pushに対応していません。HTTPSの対応ブラウザーでお試しください。');
         }
 
         if (enable && !VAPID_PUBLIC_KEY) {
@@ -1812,6 +1811,9 @@
     const notificationParams = new URLSearchParams(window.location.search);
     currentHomeOffset = (notificationParams.get('show') === 'tomorrow' || new Date().getHours() >= 18) ? 1 : 0;
     renderOmikujiEditor();
+    document.getElementById('push-notification-toggle').addEventListener('change', () => {
+      void togglePushSubscription();
+    });
     initializePushNotifications();
     document.getElementById('schedule-list-container').addEventListener('scroll', handleScheduleScroll, { passive: true });
     const countdownSwipeArea = document.querySelector('.insta-countdown-container');
