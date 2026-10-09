@@ -97,6 +97,10 @@
       border: 1px solid rgba(255, 59, 48, 0.2);
     }
     .urgent-header { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 700; color: var(--accent-red); margin-bottom: 8px; }
+    .push-notification-card { display: flex; flex-direction: column; gap: 8px; }
+    .push-notification-copy { font-size: 0.82rem; line-height: 1.5; color: var(--sub); }
+    .push-notification-button { align-self: flex-start; min-height: 42px; padding: 10px 14px; }
+    .push-notification-status { min-height: 1.2em; font-size: 0.8rem; color: var(--sub); }
 
 
     /* カウントダウン（インスタ風） */
@@ -341,6 +345,13 @@
       <button id="ticker-omikuji-btn" class="ticker-omikuji-btn" onclick="drawOmikuji()">一日おみくじ</button>
     </div>
 
+    <section class="card push-notification-card" aria-labelledby="push-notification-title">
+      <strong id="push-notification-title">🔔 明日の時間割・提出物通知</strong>
+      <p class="push-notification-copy">通知を許可すると、毎日18時に明日の時間割と提出物をお知らせします。この端末ごとに設定できます。</p>
+      <button id="push-notification-button" class="add-btn push-notification-button" type="button" onclick="togglePushSubscription()">通知を設定</button>
+      <p id="push-notification-status" class="push-notification-status" role="status" aria-live="polite"></p>
+    </section>
+
 
     <!-- 📅 時間割 -->
     <div class="card">
@@ -517,6 +528,7 @@
 
   <script>
     const SUPABASE_URL = "https://kvlruwtidwvopfsphnqc.supabase.co";
+    const VAPID_PUBLIC_KEY = "BNEeyz-ltZd7IsY6MKKSa-nA0_Uj8epEBhDEdVnNdfTEN07qyacsUCgCYS2PJqWLm_CiG6TMitpfDTyefsGXgKA";
     const SUPABASE_PUBLIC_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2bHJ1d3RpZHd2b3Bmc3BobnFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzMjkxNzUsImV4cCI6MjEwNjkwNTE3NX0.Iqc7ezCNKaU68UmgBOEsETdQjZHgbhKXOx6mK0utvBk";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2bHJ1d3RpZHd2b3Bmc3BobnFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzMjkxNzUsImV4cCI6MjEwNjkwNTE3NX0.Iqc7ezCNKaU68UmgBOEsETdQjZHgbhKXOx6mK0utvBk";
 
@@ -1615,9 +1627,130 @@
       });
     }
 
+    const PUSH_MANAGEMENT_TOKEN_KEY = 'push-management-token';
 
-    currentHomeOffset = (new Date().getHours() >= 18) ? 1 : 0;
+    function setPushStatus(message) {
+      document.getElementById('push-notification-status').textContent = message;
+    }
+
+    function setPushButtonState(isSubscribed) {
+      const button = document.getElementById('push-notification-button');
+      button.textContent = isSubscribed ? 'この端末の通知を解除' : '通知を設定';
+      button.dataset.subscribed = String(isSubscribed);
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = atob(base64);
+      return Uint8Array.from(rawData, character => character.charCodeAt(0));
+    }
+
+    function getPushManagementToken() {
+      let token = localStorage.getItem(PUSH_MANAGEMENT_TOKEN_KEY);
+      if (!token) {
+        const randomBytes = crypto.getRandomValues(new Uint8Array(32));
+        token = btoa(String.fromCharCode(...randomBytes))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '');
+        localStorage.setItem(PUSH_MANAGEMENT_TOKEN_KEY, token);
+      }
+      return token;
+    }
+
+    async function savePushSubscription(action, subscription) {
+      const { error } = await supabaseClient.functions.invoke('push-subscriptions', {
+        body: {
+          action,
+          subscription: subscription.toJSON(),
+          managementToken: getPushManagementToken()
+        }
+      });
+      if (error) throw new Error(`購読情報を保存できませんでした: ${error.message}`);
+    }
+
+    async function initializePushNotifications() {
+      const button = document.getElementById('push-notification-button');
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        button.disabled = true;
+        setPushStatus('このブラウザーはWeb Push通知に対応していません。');
+        return;
+      }
+      try {
+        const registration = await navigator.serviceWorker.register('./sw.js');
+        const subscription = await registration.pushManager.getSubscription();
+        setPushButtonState(Boolean(subscription));
+        if (Notification.permission === 'denied') {
+          setPushStatus('通知がブロックされています。ブラウザーのサイト設定から許可してください。');
+        }
+      } catch (error) {
+        console.error('Service Workerの登録に失敗しました:', error);
+        setPushStatus('通知機能を初期化できませんでした。ページを再読み込みしてください。');
+      }
+    }
+
+    async function togglePushSubscription() {
+      const button = document.getElementById('push-notification-button');
+      button.disabled = true;
+      try {
+        if (!supabaseClient) throw new Error('Supabaseに接続できません。');
+        if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+          throw new Error('このブラウザーはWeb Push通知に対応していません。');
+        }
+        if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.startsWith('REPLACE_')) {
+          throw new Error('VAPID公開鍵が設定されていません。');
+        }
+        if (button.dataset.subscribed !== 'true' && Notification.permission !== 'granted') {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') {
+            setPushStatus(permission === 'denied'
+              ? '通知がブロックされています。ブラウザーのサイト設定から許可してください。'
+              : '通知を許可すると、この端末で受け取れます。');
+            return;
+          }
+        }
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+          await savePushSubscription('remove', subscription);
+          if (!await subscription.unsubscribe()) {
+            throw new Error('ブラウザー側の通知購読を解除できませんでした。');
+          }
+          localStorage.removeItem(PUSH_MANAGEMENT_TOKEN_KEY);
+          setPushButtonState(false);
+          setPushStatus('この端末の通知を解除しました。');
+          return;
+        }
+
+        if (Notification.permission !== 'granted') {
+          throw new Error('通知の許可が必要です。もう一度「通知を設定」を押してください。');
+        }
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        try {
+          await savePushSubscription('register', subscription);
+        } catch (error) {
+          await subscription.unsubscribe();
+          throw error;
+        }
+        setPushButtonState(true);
+        setPushStatus('通知を設定しました。この端末に毎日18時ごろ通知します。');
+      } catch (error) {
+        console.error('Push通知の設定に失敗しました:', error);
+        setPushStatus(error.message || '通知の設定に失敗しました。');
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+
+    const notificationParams = new URLSearchParams(window.location.search);
+    currentHomeOffset = (notificationParams.get('show') === 'tomorrow' || new Date().getHours() >= 18) ? 1 : 0;
     renderOmikujiEditor();
+    initializePushNotifications();
     document.getElementById('schedule-list-container').addEventListener('scroll', handleScheduleScroll, { passive: true });
     const countdownSwipeArea = document.querySelector('.insta-countdown-container');
     countdownSwipeArea.addEventListener('touchstart', startCountdownSwipe, { passive: true });
