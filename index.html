@@ -195,10 +195,10 @@
 
 
     /* 提出物UI */
-    .submission-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(0, 0, 0, 0.03); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03); }
-    .submission-title { font-size: 0.9rem; font-weight: 700; color: var(--text); width: 110px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .submission-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 6px 10px; padding: 8px 12px; background: rgba(0, 0, 0, 0.03); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03); }
     .submission-date { font-size: 0.73rem; font-weight: 700; color: var(--accent-red); background: rgba(255, 59, 48, 0.1); padding: 3px 8px; border-radius: 6px; flex-shrink: 0; white-space: nowrap; }
-    .submission-detail { font-size: 0.78rem; color: var(--sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .submission-subject { font-size: 0.9rem; font-weight: 700; color: var(--text); min-width: 0; overflow-wrap: break-word; word-break: break-word; }
+    .submission-detail { grid-column: 1 / -1; min-width: 0; font-size: 0.78rem; color: var(--sub); overflow-wrap: break-word; word-break: break-word; white-space: pre-wrap; }
     .schedule-detail-modal-box { max-height: min(85dvh, 760px); overflow-y: auto; }
     .schedule-detail-date { font-size: 0.82rem; font-weight: 600; color: var(--sub); }
     .schedule-detail-section { display: flex; flex-direction: column; gap: 8px; }
@@ -213,10 +213,7 @@
     .schedule-related-deadline { margin-top: 3px; font-size: 0.78rem; font-weight: 700; color: var(--accent-red); }
     .schedule-related-detail { margin-top: 6px; font-size: 0.85rem; color: var(--sub); }
     @media (max-width: 600px) {
-      .submission-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 8px; }
-      .submission-title { width: auto; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
-      .submission-date { justify-self: end; }
-      .submission-detail { grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+      .submission-row { gap: 6px 8px; }
     }
 
 
@@ -901,6 +898,49 @@
       return SUBJECT_OPTIONS.includes(item.title) ? item.title : '';
     }
 
+    function getSubmissionDueDate(item, today = new Date()) {
+      const month = Number(item.month);
+      const day = Number(item.day);
+      if (!Number.isInteger(month) || !Number.isInteger(day) || month < 1 || month > 12 || day < 1 || day > 31) {
+        return null;
+      }
+
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      for (let year = today.getFullYear(); year <= today.getFullYear() + 8; year++) {
+        const dueDate = new Date(year, month - 1, day);
+        if (dueDate.getMonth() !== month - 1 || dueDate.getDate() !== day) continue;
+        if (dueDate >= todayStart) return dueDate;
+      }
+      return null;
+    }
+
+    function sortSubmissionsByDueDate(items) {
+      const today = new Date();
+      return [...items].sort((left, right) => {
+        const leftDate = getSubmissionDueDate(left, today);
+        const rightDate = getSubmissionDueDate(right, today);
+        if (!leftDate) return rightDate ? 1 : 0;
+        if (!rightDate) return -1;
+        return leftDate - rightDate;
+      });
+    }
+
+    function createSubmissionRow(item) {
+      const row = document.createElement('div');
+      row.className = 'submission-row';
+      const date = document.createElement('div');
+      date.className = 'submission-date';
+      date.textContent = item.month && item.day ? `${item.month}月${item.day}日` : '期限なし';
+      const subject = document.createElement('div');
+      subject.className = 'submission-subject';
+      subject.textContent = getSubmissionSubject(item) || '教科なし';
+      const detail = document.createElement('div');
+      detail.className = 'submission-detail';
+      detail.textContent = item.detail || '';
+      row.append(date, subject, detail);
+      return row;
+    }
+
     function openScheduleDetailModal(targetDate, offset, period, periodData) {
       const subject = periodData.sub || '';
       document.getElementById('schedule-detail-title').textContent =
@@ -921,21 +961,21 @@
         emptyMessage.textContent = '現在、関連する提出物はありません。';
         relatedList.append(emptyMessage);
       } else {
-        relatedSubmissions.forEach(item => {
+        sortSubmissionsByDueDate(relatedSubmissions).forEach(item => {
           const card = document.createElement('article');
           card.className = 'schedule-related-card';
-          const title = document.createElement('div');
-          title.className = 'schedule-related-title';
-          title.textContent = item.title || item.subject || '課題';
           const deadline = document.createElement('div');
           deadline.className = 'schedule-related-deadline';
           deadline.textContent = item.month && item.day
             ? `提出期限：${item.month}月${item.day}日`
             : '提出期限：期限なし';
+          const subject = document.createElement('div');
+          subject.className = 'schedule-related-title';
+          subject.textContent = getSubmissionSubject(item) || '教科なし';
           const detail = document.createElement('div');
           detail.className = 'schedule-related-detail';
           detail.textContent = item.detail || '詳細はありません。';
-          card.append(title, deadline, detail);
+          card.append(deadline, subject, detail);
           relatedList.append(card);
         });
       }
@@ -1243,27 +1283,20 @@
       allCard.classList.remove('hidden');
 
 
-      const tomorrowObj = getDateObj(1);
-      const tMonth = String(tomorrowObj.getMonth() + 1);
-      const tDay = String(tomorrowObj.getDate());
-      
       let hasUrgent = false;
 
 
-      const isTomorrow = item => String(Number(item.month)) === tMonth && String(Number(item.day)) === tDay;
-      const sortedSubmissions = [...submissionsData].sort((left, right) => Number(isTomorrow(right)) - Number(isTomorrow(left)));
+      const tomorrowObj = getDateObj(1);
+      const isTomorrow = item => {
+        const dueDate = getSubmissionDueDate(item);
+        return dueDate !== null &&
+          dueDate.getMonth() === tomorrowObj.getMonth() &&
+          dueDate.getDate() === tomorrowObj.getDate();
+      };
+      const sortedSubmissions = sortSubmissionsByDueDate(submissionsData);
 
       sortedSubmissions.forEach(item => {
-        const dateStr = (item.month && item.day) ? `${item.month}月${item.day}日` : '期限なし';
-
-
-        const row = document.createElement('div');
-        row.className = 'submission-row';
-        row.innerHTML = `
-          <div class="submission-title">${item.title || '課題'}</div>
-          <div class="submission-date">〆 ${dateStr}</div>
-          <div class="submission-detail">${item.detail || ''}</div>
-        `;
+        const row = createSubmissionRow(item);
         allContainer.appendChild(row);
 
 
