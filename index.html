@@ -1788,13 +1788,11 @@
       submissionsData = [...document.querySelectorAll('.sub-edit-item')]
         .map(item => ({
           subject: item.querySelector('.sub-subject').value,
-          title: item.querySelector('.sub-title').value.trim(),
           month: item.querySelector('.sub-month').value,
           day: item.querySelector('.sub-day').value,
           detail: item.querySelector('.sub-detail').value.trim()
         }))
-        .filter(item => item.subject || item.title || item.month || item.day || item.detail)
-        .map(item => ({ ...item, title: item.title || '課題' }));
+        .filter(item => item.subject || item.month || item.day || item.detail);
     }
 
     // 📝 提出物エディタ (教科・月・日選択オプション)
@@ -1813,13 +1811,6 @@
         const div = document.createElement('div'); div.className = 'edit-item-row sub-edit-item';
         const subject = createSubjectSelect('sub-subject', getSubmissionSubject(item));
         subject.setAttribute('aria-label', `${index + 1}件目の提出物の教科`);
-        const title = document.createElement('input');
-        title.type = 'text';
-        title.className = 'input sub-title';
-        title.value = item.title || '';
-        title.placeholder = '課題名';
-        title.style.flex = '1';
-        title.style.minWidth = '110px';
         const dateFields = document.createElement('div');
         dateFields.style.cssText = 'display:flex; gap:4px; align-items:center;';
         const mSelect = document.createElement('select');
@@ -1843,13 +1834,13 @@
         remove.className = 'del-btn';
         remove.textContent = '削除';
         remove.addEventListener('click', () => removeSubmissionItem(index));
-        div.append(subject, title, dateFields, detail, remove);
+        div.append(subject, dateFields, detail, remove);
         container.append(div);
       });
     }
     function addSubmissionItem() {
       collectSubmissionInputs();
-      submissionsData.push({ subject: '', title: '', month: '', day: '', detail: '' });
+      submissionsData.push({ subject: '', month: '', day: '', detail: '' });
       renderSubmissionEditor();
     }
     function removeSubmissionItem(index) {
