@@ -22,7 +22,7 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  const icon = payload.icon || new URL("./icon.svg", self.registration.scope).href;
+  const icon = payload.icon || new URL("./app-icon.png", self.registration.scope).href;
   event.waitUntil(self.registration.showNotification(payload.title || "1−4 案内箱", {
     body: payload.body || "明日の時間割と提出物を確認してください。",
     icon,

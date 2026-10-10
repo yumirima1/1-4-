@@ -313,7 +313,7 @@ if (import.meta.main) {
       let failed = 0;
       const payload = JSON.stringify({
         ...notification,
-        icon: new URL("./icon.svg", notification.url).toString(),
+        icon: new URL("./app-icon.png", notification.url).toString(),
       });
       for (const candidate of subscriptions ?? []) {
         if (!isPushSubscriptionRow(candidate)) {

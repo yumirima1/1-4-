@@ -1,0 +1,17 @@
+{
+  "name": "1−4 案内箱",
+  "short_name": "1−4 案内箱",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fbfbfd",
+  "theme_color": "#fbfbfd",
+  "icons": [
+    {
+      "src": "./app-icon.png",
+      "sizes": "768x768",
+      "type": "image/png"
+    }
+  ]
+}

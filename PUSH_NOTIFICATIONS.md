@@ -56,7 +56,7 @@ supabase functions deploy send-daily-push
 
 The repository's `supabase/config.toml` keeps JWT verification enabled for the browser-facing subscription function. The scheduled sender has gateway JWT verification disabled so pg_cron can call it with a random secret; the function itself rejects requests unless the `Authorization: Bearer ...` value matches `PUSH_CRON_SECRET`.
 
-Deploy the updated `index.html`, `sw.js`, and `icon.svg` to the same HTTPS site origin. In `index.html`, the already-configured Supabase URL and public key must be valid for browser use.
+Deploy `index.html`, `sw.js`, `manifest.webmanifest`, and `app-icon.png` to the same HTTPS site origin. In `index.html`, the already-configured Supabase URL and public key must be valid for browser use.
 
 ## 4. Store cron credentials in Vault and schedule 18:00 JST
 
