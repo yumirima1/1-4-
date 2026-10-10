@@ -184,6 +184,8 @@
     @media (prefers-reduced-motion: reduce) { .schedule-track, .insta-slide-wrap { scroll-behavior: auto; transition-duration: 0.01ms; } }
     .slot-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(0, 0, 0, 0.03); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03); }
     .slot-row.empty { opacity: 0.45; background: transparent; }
+    .slot-row[role="button"] { cursor: pointer; }
+    .slot-row[role="button"]:focus-visible { outline: 3px solid rgba(0, 122, 255, 0.45); outline-offset: 2px; }
     .slot-num { font-size: 0.75rem; font-weight: 700; color: var(--sub); width: 28px; flex-shrink: 0; }
     .slot-subject { font-size: 0.9rem; font-weight: 700; color: var(--text); width: 110px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .slot-detail { font-size: 0.78rem; color: var(--sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -197,6 +199,19 @@
     .submission-title { font-size: 0.9rem; font-weight: 700; color: var(--text); width: 110px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .submission-date { font-size: 0.73rem; font-weight: 700; color: var(--accent-red); background: rgba(255, 59, 48, 0.1); padding: 3px 8px; border-radius: 6px; flex-shrink: 0; white-space: nowrap; }
     .submission-detail { font-size: 0.78rem; color: var(--sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .schedule-detail-modal-box { max-height: min(85dvh, 760px); overflow-y: auto; }
+    .schedule-detail-date { font-size: 0.82rem; font-weight: 600; color: var(--sub); }
+    .schedule-detail-section { display: flex; flex-direction: column; gap: 8px; }
+    .schedule-detail-label { font-size: 0.82rem; font-weight: 700; color: var(--sub); }
+    .schedule-detail-text,
+    .schedule-related-empty,
+    .schedule-related-card { min-width: 0; overflow-wrap: break-word; word-break: break-word; white-space: pre-wrap; line-height: 1.65; }
+    .schedule-detail-text { font-size: 0.92rem; }
+    .schedule-related-list { display: flex; flex-direction: column; gap: 8px; }
+    .schedule-related-card { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0, 0, 0, 0.03); }
+    .schedule-related-title { font-weight: 700; }
+    .schedule-related-deadline { margin-top: 3px; font-size: 0.78rem; font-weight: 700; color: var(--accent-red); }
+    .schedule-related-detail { margin-top: 6px; font-size: 0.85rem; color: var(--sub); }
     @media (max-width: 600px) {
       .submission-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 8px; }
       .submission-title { width: auto; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
@@ -279,7 +294,9 @@
 
       .period-edit-row { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 8px; }
       .period-tag { grid-row: span 2; width: auto; }
-      .period-edit-row .input { width: 100%; }
+      .period-edit-row .input,
+      .period-edit-row .select { width: 100%; }
+      .sub-edit-item > .select { width: 100%; }
 
       .edit-item-row { align-items: stretch; gap: 8px; padding: 10px; }
       .evt-edit-item,
@@ -577,6 +594,29 @@
     </div>
   </div>
 
+  <div id="schedule-detail-modal" class="modal" aria-hidden="true" onclick="closeScheduleDetailModal()">
+    <div
+      class="modal-box schedule-detail-modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="schedule-detail-title"
+      onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div id="schedule-detail-title" style="font-weight:700; font-size:1.1rem;"></div>
+        <button type="button" class="modal-close-btn" aria-label="閉じる" onclick="closeScheduleDetailModal()">✕</button>
+      </div>
+      <div id="schedule-detail-date" class="schedule-detail-date"></div>
+      <section class="schedule-detail-section" aria-labelledby="schedule-detail-content-label">
+        <div id="schedule-detail-content-label" class="schedule-detail-label">授業の詳細・持ち物・メモ</div>
+        <div id="schedule-detail-content" class="schedule-detail-text"></div>
+      </section>
+      <section class="schedule-detail-section" aria-labelledby="schedule-related-label">
+        <div id="schedule-related-label" class="schedule-detail-label">関連する提出物</div>
+        <div id="schedule-related-list" class="schedule-related-list"></div>
+      </section>
+    </div>
+  </div>
+
   <script>
     const SUPABASE_URL = "https://kvlruwtidwvopfsphnqc.supabase.co";
     const VAPID_PUBLIC_KEY = "BNEeyz-ltZd7IsY6MKKSa-nA0_Uj8epEBhDEdVnNdfTEN07qyacsUCgCYS2PJqWLm_CiG6TMitpfDTyefsGXgKA";
@@ -593,6 +633,11 @@
 
 
     const days = ['日', '月', '火', '水', '木', '金', '土'];
+    const SUBJECT_OPTIONS = [
+      '歴史総合', '公共', '数学A', '数学1', '現代の国語', '言語文化',
+      '物理基礎', '生物基礎', 'コミュニケーション1', '論理表現１',
+      '総合探求', '保健', '家庭基礎', '美術１', '体育'
+    ];
     const _0x9b = atob('eXVtaXJpbWE=');
 
 
@@ -781,18 +826,7 @@
       });
 
 
-      // 提出物収集（月・日）
-      const subItems = document.querySelectorAll('.sub-edit-item');
-      submissionsData = [];
-      subItems.forEach(item => {
-        const title = item.querySelector('.sub-title').value.trim();
-        const month = item.querySelector('.sub-month').value;
-        const day = item.querySelector('.sub-day').value;
-        const detail = item.querySelector('.sub-detail').value.trim();
-        if (title || month || day || detail) {
-          submissionsData.push({ title: title || '課題', month, day, detail });
-        }
-      });
+      collectSubmissionInputs();
 
 
       // リンク収集
@@ -860,6 +894,61 @@
       const m = dateObj.getMonth() + 1; const d = dateObj.getDate(); const w = days[dateObj.getDay()];
       let tag = offset === 0 ? '今日' : offset === 1 ? '明日' : offset === 7 ? '来週' : '';
       return `${d}(${w}) ${tag}`.trim();
+    }
+
+    function getSubmissionSubject(item) {
+      if (SUBJECT_OPTIONS.includes(item.subject)) return item.subject;
+      return SUBJECT_OPTIONS.includes(item.title) ? item.title : '';
+    }
+
+    function openScheduleDetailModal(targetDate, offset, period, periodData) {
+      const subject = periodData.sub || '';
+      document.getElementById('schedule-detail-title').textContent =
+        `${period}時間目　${subject || '教科なし'}`;
+      document.getElementById('schedule-detail-date').textContent =
+        formatDateLabel(targetDate, offset);
+      document.getElementById('schedule-detail-content').textContent =
+        periodData.det || '詳細は登録されていません。';
+
+      const relatedList = document.getElementById('schedule-related-list');
+      relatedList.replaceChildren();
+      const relatedSubmissions = subject
+        ? submissionsData.filter(item => getSubmissionSubject(item) === subject)
+        : [];
+      if (relatedSubmissions.length === 0) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'schedule-related-empty';
+        emptyMessage.textContent = '現在、関連する提出物はありません。';
+        relatedList.append(emptyMessage);
+      } else {
+        relatedSubmissions.forEach(item => {
+          const card = document.createElement('article');
+          card.className = 'schedule-related-card';
+          const title = document.createElement('div');
+          title.className = 'schedule-related-title';
+          title.textContent = item.title || item.subject || '課題';
+          const deadline = document.createElement('div');
+          deadline.className = 'schedule-related-deadline';
+          deadline.textContent = item.month && item.day
+            ? `提出期限：${item.month}月${item.day}日`
+            : '提出期限：期限なし';
+          const detail = document.createElement('div');
+          detail.className = 'schedule-related-detail';
+          detail.textContent = item.detail || '詳細はありません。';
+          card.append(title, deadline, detail);
+          relatedList.append(card);
+        });
+      }
+
+      const modal = document.getElementById('schedule-detail-modal');
+      modal.classList.add('active');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeScheduleDetailModal() {
+      const modal = document.getElementById('schedule-detail-modal');
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden', 'true');
     }
 
 
@@ -951,6 +1040,8 @@
             const hasData = periodData.sub || periodData.det;
             const row = document.createElement('div');
             row.className = `slot-row ${hasData ? '' : 'empty'}`;
+            row.setAttribute('role', 'button');
+            row.tabIndex = 0;
             const number = document.createElement('div');
             number.className = 'slot-num';
             number.textContent = `${period}限`;
@@ -961,6 +1052,18 @@
             detail.className = 'slot-detail';
             detail.textContent = periodData.det || '';
             row.append(number, subject, detail);
+            row.addEventListener('click', () => openScheduleDetailModal(
+              targetDate,
+              offset,
+              period,
+              periodData
+            ));
+            row.addEventListener('keydown', event => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openScheduleDetailModal(targetDate, offset, period, periodData);
+              }
+            });
             list.append(row);
           }
           slide.append(list);
@@ -1363,6 +1466,27 @@
     }
 
 
+    function createSubjectSelect(className, value) {
+      const select = document.createElement('select');
+      select.className = `select ${className}`;
+      const noSubject = document.createElement('option');
+      noSubject.value = '';
+      noSubject.textContent = 'なし';
+      select.append(noSubject);
+      SUBJECT_OPTIONS.forEach(subject => {
+        const option = document.createElement('option');
+        option.value = subject;
+        option.textContent = subject;
+        select.append(option);
+      });
+      const other = document.createElement('option');
+      other.value = 'その他';
+      other.textContent = 'その他';
+      select.append(other);
+      select.value = SUBJECT_OPTIONS.includes(value) || value === 'その他' ? value : '';
+      return select;
+    }
+
     function renderScheduleEditor() {
       const container = document.getElementById('schedule-editor'); container.innerHTML = '';
       const dayData = scheduleData[selectedEditDateKey] || {};
@@ -1375,8 +1499,22 @@
       for (let p = 1; p <= 7; p++) {
         const pData = dayData[p] || { sub: '', det: '' };
         const row = document.createElement('div'); row.className = 'period-edit-row';
-        row.innerHTML = `<span class="period-tag">${p}限</span><input type="text" class="input p-sub" data-p="${p}" value="${pData.sub || ''}" placeholder="教科" style="flex:1;"><input type="text" class="input p-det" data-p="${p}" value="${pData.det || ''}" placeholder="詳細" style="flex:1.5;">`;
-        container.appendChild(row);
+        const period = document.createElement('span');
+        period.className = 'period-tag';
+        period.textContent = `${p}限`;
+        const subject = createSubjectSelect('p-sub', pData.sub || '');
+        subject.setAttribute('aria-label', `${p}時間目の教科`);
+        subject.dataset.p = String(p);
+        subject.style.flex = '1';
+        const detail = document.createElement('input');
+        detail.type = 'text';
+        detail.className = 'input p-det';
+        detail.dataset.p = String(p);
+        detail.value = pData.det || '';
+        detail.placeholder = '詳細';
+        detail.style.flex = '1.5';
+        row.append(period, subject, detail);
+        container.append(row);
       }
     }
 
@@ -1613,7 +1751,20 @@
     }
 
 
-    // 📝 提出物エディタ (月・日選択オプション)
+    function collectSubmissionInputs() {
+      submissionsData = [...document.querySelectorAll('.sub-edit-item')]
+        .map(item => ({
+          subject: item.querySelector('.sub-subject').value,
+          title: item.querySelector('.sub-title').value.trim(),
+          month: item.querySelector('.sub-month').value,
+          day: item.querySelector('.sub-day').value,
+          detail: item.querySelector('.sub-detail').value.trim()
+        }))
+        .filter(item => item.subject || item.title || item.month || item.day || item.detail)
+        .map(item => ({ ...item, title: item.title || '課題' }));
+    }
+
+    // 📝 提出物エディタ (教科・月・日選択オプション)
     function renderSubmissionEditor() {
       const container = document.getElementById('submission-editor-list'); container.innerHTML = '';
       
@@ -1627,31 +1778,52 @@
 
       submissionsData.forEach((item, index) => {
         const div = document.createElement('div'); div.className = 'edit-item-row sub-edit-item';
-        
-        const mSelect = `<select class="select sub-month">${monthOptions}</select>`;
-        const dSelect = `<select class="select sub-day">${dayOptions}</select>`;
-
-
-        div.innerHTML = `
-          <input type="text" class="input sub-title" value="${item.title || ''}" placeholder="教科・課題名" style="flex:1; min-width:110px;">
-          <div style="display:flex; gap:4px; align-items:center;">
-            ${mSelect}
-            ${dSelect}
-          </div>
-          <input type="text" class="input sub-detail" value="${item.detail || ''}" placeholder="詳細・範囲など" style="flex:1.5; min-width:140px;">
-          <button class="del-btn" onclick="removeSubmissionItem(${index})">削除</button>
-        `;
-
-
-        if (item.month) div.querySelector('.sub-month').value = item.month;
-        if (item.day) div.querySelector('.sub-day').value = item.day;
-
-
-        container.appendChild(div);
+        const subject = createSubjectSelect('sub-subject', getSubmissionSubject(item));
+        subject.setAttribute('aria-label', `${index + 1}件目の提出物の教科`);
+        const title = document.createElement('input');
+        title.type = 'text';
+        title.className = 'input sub-title';
+        title.value = item.title || '';
+        title.placeholder = '課題名';
+        title.style.flex = '1';
+        title.style.minWidth = '110px';
+        const dateFields = document.createElement('div');
+        dateFields.style.cssText = 'display:flex; gap:4px; align-items:center;';
+        const mSelect = document.createElement('select');
+        mSelect.className = 'select sub-month';
+        mSelect.innerHTML = monthOptions;
+        const dSelect = document.createElement('select');
+        dSelect.className = 'select sub-day';
+        dSelect.innerHTML = dayOptions;
+        mSelect.value = item.month || '';
+        dSelect.value = item.day || '';
+        dateFields.append(mSelect, dSelect);
+        const detail = document.createElement('input');
+        detail.type = 'text';
+        detail.className = 'input sub-detail';
+        detail.value = item.detail || '';
+        detail.placeholder = '詳細・範囲など';
+        detail.style.flex = '1.5';
+        detail.style.minWidth = '140px';
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'del-btn';
+        remove.textContent = '削除';
+        remove.addEventListener('click', () => removeSubmissionItem(index));
+        div.append(subject, title, dateFields, detail, remove);
+        container.append(div);
       });
     }
-    function addSubmissionItem() { submissionsData.push({ title: '', month: '', day: '', detail: '' }); renderSubmissionEditor(); }
-    function removeSubmissionItem(index) { submissionsData.splice(index, 1); renderSubmissionEditor(); }
+    function addSubmissionItem() {
+      collectSubmissionInputs();
+      submissionsData.push({ subject: '', title: '', month: '', day: '', detail: '' });
+      renderSubmissionEditor();
+    }
+    function removeSubmissionItem(index) {
+      collectSubmissionInputs();
+      submissionsData.splice(index, 1);
+      renderSubmissionEditor();
+    }
 
 
     function renderLinkEditor() {
