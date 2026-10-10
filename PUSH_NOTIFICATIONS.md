@@ -5,6 +5,7 @@ This site is a plain HTML/JavaScript page. Its timetable and submissions are sha
 ## 1. Requirements
 
 - Serve the site from its normal HTTPS URL. Web Push and service workers do not work from `file://`.
+- LINE's in-app browser cannot configure Web Push; open the site in Chrome, Safari, or another supported external browser instead.
 - Use the same Supabase project currently configured in `index.html`.
 - Install the Supabase CLI and sign in with `supabase login`.
 - Keep the VAPID private key, service-role key, and cron secret in Supabase secrets/Vault only. Never put them in the HTML or commit them.
@@ -158,5 +159,6 @@ On iOS/iPadOS, Web Push requires a supported version and the site to be added to
 
 - No new timetable or assignment tables are created: the Edge Function reads the existing `settings` rows to avoid duplicating the site's current data.
 - Tomorrow's timetable is read from either its `YYYY-MM-DD` key or legacy `MM-DD` key, matching the page's current schedule format. Submissions use their existing month/day fields.
-- Every active device receives the same notification. The body includes the next day's schedule and due submissions. Delivery is tracked by target date to skip duplicate scheduled runs.
+- Every active device receives the same notification. On weekends, Japanese public holidays, or dates tagged `休み`, the function sends the day-off message. Otherwise it lists periods 1–7 in order, including configured details, and adds submissions due that month/day when present. Delivery is tracked by target date to skip duplicate scheduled runs.
+- Japanese public holidays are calculated in the Edge Function from national fixed-date holidays, Happy Monday holidays, equinox dates, substitute holidays, citizen holidays, and the 2019–2021 Olympic-era date changes. No external holiday API is required.
 - An offline browser can display the notification when it reconnects, subject to the push provider's TTL. A browser that has denied permission cannot subscribe.

@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
 type JsonRecord = Record<string, unknown>;
@@ -40,6 +40,22 @@ export function getTomorrowInJst(now: Date): Date {
   return new Date(Date.UTC(today.year, today.month - 1, today.day + 1));
 }
 
+function sanitizeAscii(value: string): string {
+  return value.replace(/[^\x20-\x7E]/g, "").trim();
+}
+
+function getAsciiSecret(name: string): string | undefined {
+  const raw = Deno.env.get(name);
+  if (raw === undefined) return undefined;
+  const value = sanitizeAscii(raw);
+  if (value !== raw.trim()) {
+    console.warn(
+      `${name} contained non-ASCII or control characters; they were removed.`,
+    );
+  }
+  return value || undefined;
+}
+
 function hasScheduleContent(day: unknown): boolean {
   if (!isRecord(day)) return false;
   if (typeof day.tag === "string" && day.tag.trim()) return true;
@@ -72,13 +88,6 @@ function getScheduleForDate(
   return {};
 }
 
-function clipText(text: string, maxLength: number): string {
-  const characters = Array.from(text);
-  return characters.length > maxLength
-    ? `${characters.slice(0, maxLength - 1).join("")}…`
-    : text;
-}
-
 export function buildNotification(
   scheduleData: unknown,
   submissionData: unknown,
@@ -101,10 +110,10 @@ export function buildNotification(
     String(day).padStart(2, "0")
   }`;
   const schedule = getScheduleForDate(scheduleData, dateKey, legacyKey);
-  const weekday = new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    weekday: "short",
-  }).format(targetDate);
+  const weekday = ["日", "月", "火", "水", "木", "金", "土"][
+    targetDate.getUTCDay()
+  ];
+  const isDayOff = schedule.tag === "休み";
 
   const periods: string[] = [];
   for (let period = 1; period <= 7; period++) {
@@ -113,14 +122,13 @@ export function buildNotification(
     const subject = String(item.sub ?? "").trim();
     const detail = String(item.det ?? "").trim();
     if (subject || detail) {
-      periods.push(`${period}限 ${subject || detail}`);
+      periods.push(
+        `${period}.${subject || detail}${
+          subject && detail ? `（${detail}）` : ""
+        }`,
+      );
     }
   }
-  const scheduleText = schedule.tag === "休み"
-    ? "明日は休みです"
-    : periods.length
-    ? `時間割: ${periods.join("、")}`
-    : "時間割: 登録なし";
 
   const assignments = submissionData
     .filter((item: unknown): item is JsonRecord =>
@@ -128,17 +136,20 @@ export function buildNotification(
       Number(item.month) === month &&
       Number(item.day) === day
     )
-    .map((item) => String(item.title || "課題"));
-  const assignmentText = assignments.length
-    ? `提出物: ${assignments.join("、")}`
-    : "提出物: なし";
+    .map((item) => String(item.title || "課題").trim())
+    .filter(Boolean);
 
   const url = new URL(notificationUrl);
   url.searchParams.set("show", "tomorrow");
 
   return {
-    title: `明日の時間割・提出物（${month}/${day} ${weekday}）`,
-    body: clipText(`${scheduleText} / ${assignmentText}`, 180),
+    title: isDayOff
+      ? `明日（${weekday}）はお休み！`
+      : `明日（${weekday}）のお知らせ`,
+    body: isDayOff ? "お疲れ様！明日は休みだからゆっくり休もう！✨" : [
+      `【時間割】${periods.length ? periods.join(" ") : "登録なし"}`,
+      ...(assignments.length ? [`📝【提出物】${assignments.join("、")}`] : []),
+    ].join("\n"),
     url: url.toString(),
   };
 }
@@ -148,13 +159,37 @@ function isExpiredSubscriptionError(error: unknown): boolean {
   return error.statusCode === 404 || error.statusCode === 410;
 }
 
+function isPushSubscriptionRow(value: unknown): value is PushSubscriptionRow {
+  return isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.endpoint === "string" &&
+    typeof value.p256dh === "string" &&
+    typeof value.auth === "string" &&
+    (typeof value.last_notified_for === "string" ||
+      value.last_notified_for === null);
+}
+
+function getErrorDetails(error: unknown): Record<string, string> {
+  if (error instanceof Error) {
+    return { name: error.name, message: error.message };
+  }
+  if (isRecord(error)) {
+    const details: Record<string, string> = {};
+    for (const key of ["name", "message", "code", "details", "hint"]) {
+      if (typeof error[key] === "string") details[key] = error[key];
+    }
+    return details;
+  }
+  return { message: String(error) };
+}
+
 if (import.meta.main) {
   Deno.serve(async (request: Request) => {
     if (request.method !== "POST") {
       return Response.json({ error: "Method not allowed." }, { status: 405 });
     }
 
-    const cronSecret = Deno.env.get("PUSH_CRON_SECRET");
+    const cronSecret = getAsciiSecret("PUSH_CRON_SECRET");
     if (
       !cronSecret ||
       request.headers.get("authorization") !== `Bearer ${cronSecret}`
@@ -162,12 +197,12 @@ if (import.meta.main) {
       return Response.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("PUSH_SERVICE_ROLE_KEY");
-    const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
-    const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
-    const vapidSubject = Deno.env.get("VAPID_SUBJECT");
-    const notificationUrl = Deno.env.get("PUSH_NOTIFICATION_URL");
+    const supabaseUrl = getAsciiSecret("SUPABASE_URL");
+    const serviceRoleKey = getAsciiSecret("PUSH_SERVICE_ROLE_KEY");
+    const vapidPublicKey = getAsciiSecret("VAPID_PUBLIC_KEY");
+    const vapidPrivateKey = getAsciiSecret("VAPID_PRIVATE_KEY");
+    const vapidSubject = getAsciiSecret("VAPID_SUBJECT");
+    const notificationUrl = getAsciiSecret("PUSH_NOTIFICATION_URL");
     if (
       !supabaseUrl ||
       !serviceRoleKey ||
@@ -176,8 +211,18 @@ if (import.meta.main) {
       !vapidSubject ||
       !notificationUrl
     ) {
+      const missingConfiguration = [
+        !supabaseUrl && "SUPABASE_URL",
+        !serviceRoleKey && "PUSH_SERVICE_ROLE_KEY",
+        !vapidPublicKey && "VAPID_PUBLIC_KEY",
+        !vapidPrivateKey && "VAPID_PRIVATE_KEY",
+        !vapidSubject && "VAPID_SUBJECT",
+        !notificationUrl && "PUSH_NOTIFICATION_URL",
+      ].filter((name): name is string => Boolean(name));
       console.error(
-        "One or more required push notification secrets are missing.",
+        `Missing required push notification configuration: ${
+          missingConfiguration.join(", ")
+        }`,
       );
       return Response.json({
         error: "Push notification service is not configured.",
@@ -198,11 +243,13 @@ if (import.meta.main) {
       });
     }
 
+    let stage = "vapid_setup";
     try {
       webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
       const admin = createClient(supabaseUrl, serviceRoleKey, {
         auth: { autoRefreshToken: false, persistSession: false },
       });
+      stage = "settings_query";
       const { data: settings, error: settingsError } = await admin
         .from("settings")
         .select("key, value")
@@ -216,12 +263,27 @@ if (import.meta.main) {
       const settingsByKey = new Map(
         (settings ?? []).map((row) => [row.key, row.value]),
       );
-      const schedules = readJson(settingsByKey.get("schedules"), {});
-      const submissions = readJson(settingsByKey.get("submissions"), []);
+      stage = "settings_parse";
+      let schedules: unknown;
+      let submissions: unknown;
+      try {
+        schedules = readJson(settingsByKey.get("schedules"), {});
+        submissions = readJson(settingsByKey.get("submissions"), []);
+      } catch (error) {
+        console.error(
+          "Could not parse schedule settings from the database:",
+          error,
+        );
+        return Response.json(
+          { error: "Schedule settings contain invalid JSON.", stage },
+          { status: 500 },
+        );
+      }
       const targetDate = getTomorrowInJst(new Date());
       const targetDateKey = `${targetDate.getUTCFullYear()}-${
         String(targetDate.getUTCMonth() + 1).padStart(2, "0")
       }-${String(targetDate.getUTCDate()).padStart(2, "0")}`;
+      stage = "notification_build";
       const notification = buildNotification(
         schedules,
         submissions,
@@ -229,39 +291,87 @@ if (import.meta.main) {
         notificationUrl,
       );
 
+      stage = "subscriptions_query";
       const { data: subscriptions, error: subscriptionsError } = await admin
         .from("push_subscriptions")
         .select("id, endpoint, p256dh, auth, last_notified_for");
       if (subscriptionsError) {
-        throw new Error(
-          `Could not load push subscriptions: ${subscriptionsError.message}`,
+        console.error("Could not load push subscriptions:", subscriptionsError);
+        return Response.json(
+          {
+            error: "Could not load push subscriptions.",
+            stage,
+            details: getErrorDetails(subscriptionsError),
+          },
+          { status: 500 },
         );
       }
 
       let sent = 0;
       let skipped = 0;
       let removed = 0;
-      const failed: string[] = [];
-      for (
-        const subscription of (subscriptions ?? []) as PushSubscriptionRow[]
-      ) {
+      let failed = 0;
+      const payload = JSON.stringify({
+        ...notification,
+        icon: new URL("./icon.svg", notification.url).toString(),
+      });
+      for (const candidate of subscriptions ?? []) {
+        if (!isPushSubscriptionRow(candidate)) {
+          console.error("Skipping a push subscription with invalid row data.");
+          failed++;
+          continue;
+        }
+        const subscription = candidate;
         if (subscription.last_notified_for === targetDateKey) {
           skipped++;
           continue;
         }
+
+        stage = "push_delivery";
         try {
           await webpush.sendNotification(
             {
               endpoint: subscription.endpoint,
               keys: { p256dh: subscription.p256dh, auth: subscription.auth },
             },
-            JSON.stringify({
-              ...notification,
-              icon: new URL("./icon.svg", notification.url).toString(),
-            }),
+            payload,
             { TTL: 3600, urgency: "normal" },
           );
+        } catch (error) {
+          if (isExpiredSubscriptionError(error)) {
+            try {
+              const { error: deleteError } = await admin
+                .from("push_subscriptions")
+                .delete()
+                .eq("id", subscription.id);
+              if (deleteError) {
+                console.error(
+                  `Could not remove expired subscription ${subscription.id}:`,
+                  deleteError.message,
+                );
+                failed++;
+              } else {
+                removed++;
+              }
+            } catch (deleteError) {
+              console.error(
+                `Could not remove expired subscription ${subscription.id}:`,
+                deleteError,
+              );
+              failed++;
+            }
+          } else {
+            console.error(
+              `Push delivery failed for subscription ${subscription.id}:`,
+              error,
+            );
+            failed++;
+          }
+          continue;
+        }
 
+        stage = "delivery_state_update";
+        try {
           const { error: updateError } = await admin
             .from("push_subscriptions")
             .update({
@@ -274,32 +384,16 @@ if (import.meta.main) {
               `Notification sent but delivery state could not be saved for subscription ${subscription.id}:`,
               updateError.message,
             );
-            failed.push(subscription.id);
+            failed++;
           } else {
             sent++;
           }
         } catch (error) {
-          if (isExpiredSubscriptionError(error)) {
-            const { error: deleteError } = await admin
-              .from("push_subscriptions")
-              .delete()
-              .eq("id", subscription.id);
-            if (deleteError) {
-              console.error(
-                `Could not remove expired subscription ${subscription.id}:`,
-                deleteError.message,
-              );
-              failed.push(subscription.id);
-            } else {
-              removed++;
-            }
-          } else {
-            console.error(
-              `Push delivery failed for subscription ${subscription.id}:`,
-              error,
-            );
-            failed.push(subscription.id);
-          }
+          console.error(
+            `Notification sent but delivery state could not be saved for subscription ${subscription.id}:`,
+            error,
+          );
+          failed++;
         }
       }
 
@@ -308,13 +402,18 @@ if (import.meta.main) {
         sent,
         skipped,
         removed,
-        failed: failed.length,
+        failed,
       });
     } catch (error) {
-      console.error("Daily push delivery failed:", error);
-      return Response.json({ error: "Daily push delivery failed." }, {
-        status: 500,
-      });
+      console.error(`Daily push delivery failed during ${stage}:`, error);
+      return Response.json(
+        {
+          error: "Daily push delivery failed.",
+          stage,
+          details: getErrorDetails(error),
+        },
+        { status: 500 },
+      );
     }
   });
 }

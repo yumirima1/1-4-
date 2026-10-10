@@ -10,9 +10,6 @@ create table if not exists public.push_subscriptions (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists push_subscriptions_user_id_idx
-  on public.push_subscriptions (user_id);
-
 alter table public.push_subscriptions enable row level security;
 
 revoke all on table public.push_subscriptions from anon, authenticated;
