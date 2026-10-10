@@ -1757,7 +1757,6 @@
       if (isLineInAppBrowser()) {
         setPushButtonState(false);
         setPushStatus('LINE 内ブラウザではプッシュ通知を設定できません。外部ブラウザーで開いてください。');
-        showPushSupportModal();
         return;
       }
       if (!isWebPushSupported()) {
@@ -1784,9 +1783,11 @@
       if (toggle.disabled) return;
       const enable = toggle.checked;
       if (isLineInAppBrowser() || !isWebPushSupported()) {
-        toggle.checked = !enable;
-        setPushStatus('この環境ではプッシュ通知を設定できません。対応ブラウザーで開いてください。');
-        showPushSupportModal();
+        toggle.checked = false;
+        if (enable) {
+          setPushStatus('この環境ではプッシュ通知を設定できません。対応ブラウザーで開いてください。');
+          showPushSupportModal();
+        }
         return;
       }
       toggle.disabled = true;
