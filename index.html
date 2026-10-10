@@ -245,6 +245,7 @@
     .modal-box { background: var(--card); width: 90%; max-width: 380px; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; }
     .modal-close-btn { background: rgba(0,0,0,0.06); border: none; font-size: 1.1rem; width: 30px; height: 30px; border-radius: 15px; cursor: pointer; color: var(--sub); font-weight: bold; display: flex; align-items: center; justify-content: center; }
+    .push-support-message { font-size: 0.92rem; line-height: 1.7; color: var(--text); }
 
 
     .tag-list-chips { display: flex; flex-wrap: wrap; gap: 8px; max-height: 180px; overflow-y: auto; padding: 4px; }
@@ -556,6 +557,23 @@
       <button type="button" class="add-btn" onclick="addOmikujiItem()">＋ おみくじを追加</button>
       <div id="omikuji-save-status" class="form-label" aria-live="polite">おみくじ設定はSupabaseのsettingsに保存されます。</div>
       <button type="button" class="save-btn" onclick="saveOmikujiSettings()">おみくじ設定を保存</button>
+    </div>
+  </div>
+
+  <div id="push-support-modal" class="modal" aria-hidden="true" onclick="closePushSupportModal()">
+    <div
+      class="modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="push-support-title"
+      aria-describedby="push-support-message"
+      onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div id="push-support-title" style="font-weight:700; font-size:1.1rem;">プッシュ通知の設定について</div>
+        <button type="button" class="modal-close-btn" aria-label="閉じる" onclick="closePushSupportModal()">✕</button>
+      </div>
+      <p id="push-support-message" class="push-support-message"></p>
+      <button type="button" class="save-btn" onclick="closePushSupportModal()">閉じる</button>
     </div>
   </div>
 
@@ -1199,7 +1217,7 @@
       const box = ticker.closest('.ticker-wrap');
       const result = readDailyOmikuji();
       const notice = portalData.notice || 'お知らせはありません';
-      const text = result ? `${notice}　｜　${result.message}` : notice;
+      const text = result ? `${result.message}　｜　${notice}` : notice;
       if (ticker.textContent !== text) {
         ticker.textContent = text;
         requestAnimationFrame(() => {
@@ -1667,6 +1685,32 @@
       document.getElementById('push-notification-toggle').checked = isSubscribed;
     }
 
+    function isLineInAppBrowser() {
+      return /Line/i.test(navigator.userAgent);
+    }
+
+    function isWebPushSupported() {
+      return 'serviceWorker' in navigator &&
+        'PushManager' in window &&
+        'Notification' in window;
+    }
+
+    function showPushSupportModal() {
+      const lineInAppBrowser = isLineInAppBrowser();
+      document.getElementById('push-support-message').textContent = lineInAppBrowser
+        ? 'LINE 内ブラウザではプッシュ通知の設定ができません。右上のメニュー（「…」アイコン等）から「Chrome で開く」または「デフォルトのブラウザで開く」を選択してください。'
+        : 'このブラウザーまたは接続方法はプッシュ通知に対応していません。Chrome または Safari などの対応ブラウザーで、HTTPS 接続からお試しください。';
+      const modal = document.getElementById('push-support-modal');
+      modal.classList.add('active');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closePushSupportModal() {
+      const modal = document.getElementById('push-support-modal');
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
     function isIosDevice() {
       return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -1710,7 +1754,15 @@
 
     async function initializePushNotifications() {
       const toggle = document.getElementById('push-notification-toggle');
-      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      if (isLineInAppBrowser()) {
+        setPushButtonState(false);
+        setPushStatus('LINE 内ブラウザではプッシュ通知を設定できません。外部ブラウザーで開いてください。');
+        showPushSupportModal();
+        return;
+      }
+      if (!isWebPushSupported()) {
+        setPushButtonState(false);
+        setPushStatus('このブラウザーまたは接続方法はプッシュ通知に対応していません。');
         return;
       }
       try {
@@ -1731,6 +1783,12 @@
       const toggle = document.getElementById('push-notification-toggle');
       if (toggle.disabled) return;
       const enable = toggle.checked;
+      if (isLineInAppBrowser() || !isWebPushSupported()) {
+        toggle.checked = !enable;
+        setPushStatus('この環境ではプッシュ通知を設定できません。対応ブラウザーで開いてください。');
+        showPushSupportModal();
+        return;
+      }
       toggle.disabled = true;
       setPushStatus(enable ? '通知を設定しています…' : '通知を解除しています…');
       try {
