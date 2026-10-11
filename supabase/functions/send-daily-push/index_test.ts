@@ -30,6 +30,7 @@ Deno.test("includes the next school day's schedule details and due submissions",
     notification.body.includes("\n📝【提出物】数学ワーク"),
     true,
   );
+  assertEquals(notification.icon, "https://example.com/1-4-/app-icon.png");
   assertEquals(new URL(notification.url).searchParams.get("show"), "tomorrow");
 });
 

@@ -93,7 +93,7 @@ export function buildNotification(
   submissionData: unknown,
   targetDate: Date,
   notificationUrl: string,
-): { title: string; body: string; url: string } {
+): { title: string; body: string; url: string; icon: string } {
   if (!isRecord(scheduleData) || !Array.isArray(submissionData)) {
     throw new Error(
       "Schedule or submission settings are not in the expected format.",
@@ -151,6 +151,7 @@ export function buildNotification(
       ...(assignments.length ? [`📝【提出物】${assignments.join("、")}`] : []),
     ].join("\n"),
     url: url.toString(),
+    icon: new URL("./app-icon.png", url).toString(),
   };
 }
 
@@ -311,10 +312,7 @@ if (import.meta.main) {
       let skipped = 0;
       let removed = 0;
       let failed = 0;
-      const payload = JSON.stringify({
-        ...notification,
-        icon: new URL("./app-icon.png", notification.url).toString(),
-      });
+      const payload = JSON.stringify(notification);
       for (const candidate of subscriptions ?? []) {
         if (!isPushSubscriptionRow(candidate)) {
           console.error("Skipping a push subscription with invalid row data.");
