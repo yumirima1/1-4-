@@ -19,7 +19,7 @@
 
 
   <!-- ☁️ Supabase ライブラリ -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
 
   <style>
@@ -633,11 +633,6 @@
 
 
     let supabaseClient = null;
-    try {
-      if (window.supabase && typeof window.supabase.createClient === 'function') {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY);
-      }
-    } catch(e) { console.error("Supabase Error:", e); }
 
 
     const days = ['日', '月', '火', '水', '木', '金', '土'];
@@ -646,7 +641,7 @@
       '物理基礎', '生物基礎', 'コミュニケーション1', '論理表現１',
       '総合探求', '保健', '家庭基礎', '美術１', '体育'
     ];
-    const _0x9b = atob('eXVtaXJpbWE=');
+    const _0x9b = atob('dGFydXRhcnU=');
 
 
     let portalData = { headerText: '', bgColor: '#fbfbfd', notice: 'お知らせはありません', customPassword: '' };
@@ -669,6 +664,7 @@
 
 
     const SETTINGS_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+    const SETTINGS_CACHE_KEY = 'portal-settings-cache-v1';
     let settingsAuthorized = false;
     let midnightTimer = null;
     let scheduleScrollTimer = null;
@@ -678,6 +674,103 @@
     let submissionsLoadedFromSupabase = false;
     let submissionExpiryInProgress = false;
     let lastAutoScheduleDate = new Date().getHours() >= 18 ? todayISODate() : '';
+
+
+    function initializeSupabase() {
+      if (!supabaseClient && window.supabase && typeof window.supabase.createClient === 'function') {
+        try {
+          supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY);
+        } catch (error) {
+          console.error('Supabase Error:', error);
+        }
+      }
+    }
+
+    function applySettingsConfig(config, fromCache = false) {
+      portalData.headerText = config.header_text || '';
+      portalData.bgColor = config.bg_color || '#fbfbfd';
+      portalData.notice = config.notice || 'お知らせはありません';
+      if (!fromCache) {
+        portalData.customPassword = config.custom_password || '';
+        selectedImageBase64 = config.bg_img_file || '';
+        selectedBannerBase64 = config.banner_img_file || '';
+      }
+
+      if (config.event_list) { try { eventsData = JSON.parse(config.event_list); } catch (error) { console.error('イベント設定を読み込めません:', error); } }
+      if (config.schedules) { try { scheduleData = JSON.parse(config.schedules); } catch (error) { console.error('時間割設定を読み込めません:', error); } }
+      if (config.links) { try { linksData = JSON.parse(config.links); } catch (error) { console.error('リンク設定を読み込めません:', error); } }
+      if (Object.prototype.hasOwnProperty.call(config, 'submissions')) {
+        try {
+          const savedSubmissions = JSON.parse(config.submissions);
+          if (Array.isArray(savedSubmissions)) {
+            submissionsData = savedSubmissions;
+            submissionsLoadedFromSupabase = !fromCache;
+          } else {
+            console.error('提出物設定の形式が正しくありません。');
+          }
+        } catch (error) {
+          console.error('提出物設定を読み込めません:', error);
+        }
+      }
+      if (config.custom_tags) { try { customTags = JSON.parse(config.custom_tags); } catch (error) { console.error('タグ設定を読み込めません:', error); } }
+      if (config.omikuji_list) {
+        try {
+          const savedItems = JSON.parse(config.omikuji_list);
+          if (Array.isArray(savedItems)) {
+            omikujiList = savedItems.map((item, index) => ({
+              rarity: item.rarity || '',
+              message: item.message || [item.title, item.desc].filter(Boolean).join(' ') || `おみくじ${index + 1}`,
+              color: item.color || item.neon_color || '#39ff14'
+            }));
+          }
+        } catch (error) {
+          console.error('おみくじ設定を読み込めません:', error);
+        }
+      }
+    }
+
+    function restoreCachedSettings() {
+      try {
+        const cached = localStorage.getItem(SETTINGS_CACHE_KEY);
+        if (!cached) return;
+        const { version, config } = JSON.parse(cached);
+        if (version !== 1 || !config || typeof config !== 'object' || Array.isArray(config)) {
+          throw new Error('保存済み設定の形式が正しくありません。');
+        }
+        applySettingsConfig(config, true);
+      } catch (error) {
+        console.error('保存済み設定を読み込めません:', error);
+      }
+    }
+
+    function saveSettingsCache() {
+      const config = {
+        header_text: portalData.headerText,
+        bg_color: portalData.bgColor,
+        notice: portalData.notice,
+        event_list: JSON.stringify(eventsData),
+        schedules: JSON.stringify(scheduleData),
+        submissions: JSON.stringify(submissionsData),
+        links: JSON.stringify(linksData),
+        custom_tags: JSON.stringify(customTags),
+        omikuji_list: JSON.stringify(omikujiList)
+      };
+      try {
+        localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ version: 1, config }));
+      } catch (error) {
+        console.error('設定を端末に保存できません。端末の空き容量を確認してください:', error);
+      }
+    }
+
+    function renderPortalState() {
+      cleanAndMaintainSchedules();
+      applyStylesAndText();
+      renderHomeSchedule();
+      renderHomeSubmissions();
+      renderHomeLinks();
+      restoreDailyOmikuji();
+      void expireTodaySubmissions();
+    }
 
 
     async function fetchAllFromSupabase(showErrors = true) {
@@ -696,45 +789,7 @@
             const config = {};
             data.forEach(item => { config[item.key] = item.value; });
             hasSavedOmikuji = Object.prototype.hasOwnProperty.call(config, 'omikuji_list');
-
-
-            portalData.headerText = config.header_text || '';
-            portalData.bgColor = config.bg_color || '#fbfbfd';
-            portalData.notice = config.notice || 'お知らせはありません';
-            portalData.customPassword = config.custom_password || '';
-            selectedImageBase64 = config.bg_img_file || '';
-            selectedBannerBase64 = config.banner_img_file || '';
-
-
-            if (config.event_list) { try { eventsData = JSON.parse(config.event_list); } catch(e){} }
-            if (config.schedules) { try { scheduleData = JSON.parse(config.schedules); } catch(e){} }
-            if (config.links) { try { linksData = JSON.parse(config.links); } catch(e){} }
-            if (Object.prototype.hasOwnProperty.call(config, 'submissions')) {
-              try {
-                const savedSubmissions = JSON.parse(config.submissions);
-                if (Array.isArray(savedSubmissions)) {
-                  submissionsData = savedSubmissions;
-                  submissionsLoadedFromSupabase = true;
-                } else {
-                  console.error('提出物設定の形式が正しくありません。');
-                }
-              } catch (err) {
-                console.error('提出物設定を読み込めません:', err);
-              }
-            }
-            if (config.custom_tags) { try { customTags = JSON.parse(config.custom_tags); } catch(e){} }
-            if (config.omikuji_list) {
-              try {
-                const savedItems = JSON.parse(config.omikuji_list);
-                if (Array.isArray(savedItems)) {
-                  omikujiList = savedItems.map((item, index) => ({
-                    rarity: item.rarity || '',
-                    message: item.message || [item.title, item.desc].filter(Boolean).join(' ') || `おみくじ${index + 1}`,
-                    color: item.color || item.neon_color || '#39ff14'
-                  }));
-                }
-              } catch(e) { console.error('おみくじ設定を読み込めません:', e); }
-            }
+            applySettingsConfig(config);
           }
           if (!error && !hasSavedOmikuji) {
             const { data: legacyItems, error: legacyError } = await supabaseClient
@@ -750,17 +805,12 @@
                 .map(item => ({ message: item.message, color: item.neon_color || '#39ff14' }));
             }
           }
+          if (!error) saveSettingsCache();
         }
       } catch (err) { console.error('通信エラー:', err); }
       finally {
         settingsFetchInProgress = false;
-        cleanAndMaintainSchedules();
-        applyStylesAndText();
-        renderHomeSchedule();
-        renderHomeSubmissions();
-        renderHomeLinks();
-        restoreDailyOmikuji();
-        void expireTodaySubmissions();
+        renderPortalState();
       }
     }
 
@@ -2095,8 +2145,17 @@
       }
     });
     window.addEventListener('focus', refreshSettingsIfStale);
+    restoreCachedSettings();
+    renderPortalState();
     updateClock(); setInterval(updateClock, 1000); setInterval(expireTodaySubmissions, 30000); fetchWeather();
-    fetchAllFromSupabase();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js')
+        .catch(error => console.error('オフライン用キャッシュを有効にできません:', error));
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeSupabase();
+      void fetchAllFromSupabase();
+    }, { once: true });
   </script>
 </body>
 </html>

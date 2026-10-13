@@ -1,9 +1,51 @@
 self.addEventListener("install", (event) => {
-  event.waitUntil(self.skipWaiting());
+  event.waitUntil((async () => {
+    const cache = await caches.open("1-4-shell-v1");
+    const shellUrl = new URL("./", self.registration.scope).href;
+    const response = await fetch(shellUrl);
+    if (!response.ok) throw new Error(`App shell request failed: ${response.status}`);
+    await cache.put(shellUrl, response);
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil((async () => {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames
+      .filter((name) => name.startsWith("1-4-shell-") && name !== "1-4-shell-v1")
+      .map((name) => caches.delete(name)));
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  const scopeUrl = new URL(self.registration.scope);
+  if (
+    request.method !== "GET" ||
+    new URL(request.url).origin !== scopeUrl.origin ||
+    !new URL(request.url).pathname.startsWith(scopeUrl.pathname)
+  ) return;
+
+  const isNavigation = request.mode === "navigate";
+  const shellUrl = new URL("./", scopeUrl).href;
+  const update = caches.open("1-4-shell-v1").then(async (cache) => {
+    const response = await fetch(request);
+    if (response.ok) {
+      await cache.put(isNavigation ? shellUrl : request, response.clone());
+    }
+    return response;
+  });
+  event.waitUntil(update.catch((error) => {
+    console.warn("Offline cache refresh failed:", error);
+  }));
+  event.respondWith((async () => {
+    const cache = await caches.open("1-4-shell-v1");
+    const cached = await cache.match(isNavigation ? shellUrl : request);
+    if (cached) return cached;
+    return update;
+  })());
 });
 
 self.addEventListener("push", (event) => {
