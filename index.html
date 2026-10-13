@@ -268,6 +268,28 @@
     .modal-box { background: var(--card); width: 90%; max-width: 380px; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; }
     .modal-close-btn { background: rgba(0,0,0,0.06); border: none; font-size: 1.1rem; width: 30px; height: 30px; border-radius: 15px; cursor: pointer; color: var(--sub); font-weight: bold; display: flex; align-items: center; justify-content: center; }
+    .auth-error { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(255, 59, 48, 0.1); color: #c5221f; font-size: 0.9rem; }
+    .auth-error-close { flex: 0 0 auto; border: 0; background: transparent; color: inherit; font-size: 1.1rem; cursor: pointer; }
+    #auth-modal { z-index: 1200; overflow: hidden; background: #000; backdrop-filter: none; -webkit-backdrop-filter: none; color: #30ff75; font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; transition: opacity 0.25s, background-color 1.8s ease; }
+    #auth-modal.active { opacity: 1; }
+    #auth-modal.success-transition { background-color: transparent; }
+    .auth-rain-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; transition: opacity 1.8s ease; }
+    .auth-terminal { position: relative; z-index: 1; width: min(760px, calc(100% - 36px)); padding: clamp(20px, 5vw, 40px); border: 1px solid rgba(48, 255, 117, 0.35); border-radius: 12px; background: rgba(0, 0, 0, 0.82); box-shadow: 0 0 40px rgba(0, 255, 90, 0.12); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .auth-terminal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; color: #8bffa9; font-size: 0.85rem; }
+    .auth-terminal-close { border: 1px solid rgba(48, 255, 117, 0.45); border-radius: 6px; padding: 6px 10px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+    .auth-terminal-prompt { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: clamp(0.9rem, 2.8vw, 1.05rem); line-height: 1.8; }
+    .auth-terminal-input { flex: 1 1 180px; min-width: 0; border: 0; outline: 0; padding: 4px 0; background: transparent; color: #30ff75; caret-color: #30ff75; font: inherit; }
+    .auth-terminal-input::placeholder { color: rgba(48, 255, 117, 0.45); }
+    .auth-terminal-submit { display: block; margin-top: 20px; border: 1px solid rgba(48, 255, 117, 0.55); border-radius: 7px; padding: 9px 16px; background: rgba(48, 255, 117, 0.08); color: inherit; font: inherit; cursor: pointer; }
+    .auth-terminal-submit:disabled, .auth-terminal-input:disabled { opacity: 0.6; cursor: wait; }
+    .auth-terminal-error { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; border: 1px solid rgba(255, 65, 65, 0.5); border-radius: 7px; padding: 9px 12px; background: rgba(70, 0, 0, 0.5); color: #ff6767; }
+    #auth-modal.code-error .auth-terminal { border-color: rgba(255, 65, 65, 0.8); color: #ff6767; }
+    #auth-modal.code-error .auth-terminal-close { border-color: rgba(255, 65, 65, 0.55); }
+    #auth-modal.success-transition .auth-rain-canvas, #auth-modal.success-transition .auth-terminal { opacity: 0; }
+    #auth-modal.success-transition .auth-terminal { transform: scale(1.04); }
+    @media (prefers-reduced-motion: reduce) {
+      #auth-modal, .auth-rain-canvas, .auth-terminal { transition-duration: 0.01ms; }
+    }
     .push-support-message { font-size: 0.92rem; line-height: 1.7; color: var(--text); }
 
 
@@ -545,14 +567,24 @@
 
 
   <!-- モーダル類 -->
-  <div id="auth-modal" class="modal" onclick="closeAuthModal()">
-    <div class="modal-box" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <div style="font-weight:700; font-size:1.1rem;">パスワード入力</div>
-        <button class="modal-close-btn" onclick="closeAuthModal()">✕</button>
+  <div id="auth-modal" class="modal" onclick="closeAuthModal()" role="dialog" aria-modal="true" aria-labelledby="auth-terminal-title">
+    <canvas id="auth-rain" class="auth-rain-canvas" aria-hidden="true"></canvas>
+    <div class="auth-terminal" onclick="event.stopPropagation()">
+      <div class="auth-terminal-header">
+        <span id="auth-terminal-title">SECURE SYSTEM :: AUTHENTICATION REQUIRED</span>
+        <button type="button" class="auth-terminal-close" onclick="closeAuthModal()">閉じる</button>
       </div>
-      <input type="password" id="pwd-input" class="input" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter') verifyPassword()">
-      <button class="save-btn" onclick="verifyPassword()">認証</button>
+      <form id="auth-form" onsubmit="verifyPassword(event)">
+        <label class="auth-terminal-prompt" for="pwd-input">
+          <span>user@system:~$ enter password:</span>
+          <input type="password" id="pwd-input" class="auth-terminal-input" placeholder="••••••••" autocomplete="current-password" autofocus>
+        </label>
+        <div id="auth-error" class="auth-terminal-error hidden" role="alert">
+          <span>ACCESS DENIED :: パスワードが違います</span>
+          <button type="button" class="auth-error-close" aria-label="警告を閉じる" onclick="closeAuthError()">✕</button>
+        </div>
+        <button type="submit" class="auth-terminal-submit">認証する ↵</button>
+      </form>
     </div>
   </div>
 
@@ -1515,14 +1547,116 @@
     }
 
 
-    function openAuthModal() { document.getElementById('pwd-input').value = ''; document.getElementById('auth-modal').classList.add('active'); }
-    function closeAuthModal() { document.getElementById('auth-modal').classList.remove('active'); }
-    function verifyPassword() {
+    function openAuthModal() {
+      document.getElementById('pwd-input').value = '';
+      closeAuthError();
+      const modal = document.getElementById('auth-modal');
+      modal.classList.remove('success-transition', 'code-error');
+      modal.classList.add('active');
+      window.requestAnimationFrame(() => document.getElementById('pwd-input').focus());
+    }
+    let authAnimationFrame = null;
+    let authAnimationTimeout = null;
+    let authRainResizeHandler = null;
+    let authBusy = false;
+
+    function stopCodeRain() {
+      if (authAnimationFrame !== null) {
+        window.cancelAnimationFrame(authAnimationFrame);
+        authAnimationFrame = null;
+      }
+      if (authRainResizeHandler) {
+        window.removeEventListener('resize', authRainResizeHandler);
+        authRainResizeHandler = null;
+      }
+    }
+
+    function startCodeRain(color) {
+      stopCodeRain();
+      const canvas = document.getElementById('auth-rain');
+      const context = canvas.getContext('2d');
+      if (!context) {
+        console.error('コードレイン演出を開始できません: Canvas 2D が利用できません。');
+        return;
+      }
+
+      const characters = 'アカサタナハマヤラワ012345789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const fontSize = 16;
+      const deviceScale = Math.min(window.devicePixelRatio || 1, 1.5);
+      let width = 0;
+      let height = 0;
+      let drops = [];
+
+      const resize = () => {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.ceil(width * deviceScale);
+        canvas.height = Math.ceil(height * deviceScale);
+        context.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+        context.font = `${fontSize}px monospace`;
+        drops = Array.from({ length: Math.ceil(width / fontSize) }, () => Math.random() * -height / fontSize);
+      };
+      const draw = () => {
+        context.fillStyle = 'rgba(0, 0, 0, 0.16)';
+        context.fillRect(0, 0, width, height);
+        drops.forEach((drop, index) => {
+          const character = characters[Math.floor(Math.random() * characters.length)];
+          const x = index * fontSize;
+          const y = drop * fontSize;
+          context.fillStyle = color === '#30ff75' ? '#b6ffcb' : '#ffd0d0';
+          context.fillText(character, x, y);
+          context.fillStyle = color;
+          context.fillText(characters[Math.floor(Math.random() * characters.length)], x, y - fontSize);
+          drops[index] = drop > height / fontSize && Math.random() > 0.975
+            ? 0
+            : drop + 0.8 + Math.random() * 1.4;
+        });
+        authAnimationFrame = window.requestAnimationFrame(draw);
+      };
+
+      authRainResizeHandler = resize;
+      window.addEventListener('resize', authRainResizeHandler, { passive: true });
+      resize();
+      authAnimationFrame = window.requestAnimationFrame(draw);
+    }
+
+    function closeAuthModal() {
+      if (authAnimationTimeout !== null) {
+        window.clearTimeout(authAnimationTimeout);
+        authAnimationTimeout = null;
+      }
+      stopCodeRain();
+      authBusy = false;
+      document.getElementById('pwd-input').disabled = false;
+      document.querySelector('.auth-terminal-submit').disabled = false;
+      document.getElementById('auth-modal').classList.remove('active', 'success-transition', 'code-error');
+    }
+    function closeAuthError() { document.getElementById('auth-error').classList.add('hidden'); }
+    function verifyPassword(event) {
+      event.preventDefault();
+      if (authBusy) return;
       const input = document.getElementById('pwd-input').value;
+      const modal = document.getElementById('auth-modal');
+      const passwordInput = document.getElementById('pwd-input');
+      const submitButton = document.querySelector('.auth-terminal-submit');
+      authBusy = true;
+      passwordInput.disabled = true;
+      submitButton.disabled = true;
+
       if ((portalData.customPassword && input === portalData.customPassword) || input === _0x9b) {
         settingsAuthorized = true;
-        closeAuthModal(); showSettings();
-      } else { alert('パスワードが違います'); }
+        closeAuthError();
+        showSettings();
+        startCodeRain('#30ff75');
+        window.requestAnimationFrame(() => modal.classList.add('success-transition'));
+        const transitionDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 250 : 1800;
+        authAnimationTimeout = window.setTimeout(closeAuthModal, transitionDuration);
+      } else {
+        modal.classList.add('code-error');
+        document.getElementById('auth-error').classList.remove('hidden');
+        startCodeRain('#ff3030');
+        authAnimationTimeout = window.setTimeout(closeAuthModal, 2000);
+      }
     }
 
 
