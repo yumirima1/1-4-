@@ -270,25 +270,43 @@
     .modal-close-btn { background: rgba(0,0,0,0.06); border: none; font-size: 1.1rem; width: 30px; height: 30px; border-radius: 15px; cursor: pointer; color: var(--sub); font-weight: bold; display: flex; align-items: center; justify-content: center; }
     .auth-error { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(255, 59, 48, 0.1); color: #c5221f; font-size: 0.9rem; }
     .auth-error-close { flex: 0 0 auto; border: 0; background: transparent; color: inherit; font-size: 1.1rem; cursor: pointer; }
-    #auth-modal { z-index: 1200; overflow: hidden; background: #000; backdrop-filter: none; -webkit-backdrop-filter: none; color: #30ff75; font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; transition: opacity 0.25s, background-color 1.8s ease; }
+    #auth-modal { z-index: 1200; overflow: hidden; align-items: stretch; justify-content: stretch; padding: 0; background: #000; backdrop-filter: none; -webkit-backdrop-filter: none; color: #30ff75; font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; transition: opacity 0.25s, background-color 1.8s ease; }
     #auth-modal.active { opacity: 1; }
     #auth-modal.success-transition { background-color: transparent; }
     .auth-rain-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; transition: opacity 1.8s ease; }
-    .auth-terminal { position: relative; z-index: 1; width: min(760px, calc(100% - 36px)); padding: clamp(20px, 5vw, 40px); border: 1px solid rgba(48, 255, 117, 0.35); border-radius: 12px; background: rgba(0, 0, 0, 0.82); box-shadow: 0 0 40px rgba(0, 255, 90, 0.12); transition: opacity 0.7s ease, transform 0.7s ease; }
-    .auth-terminal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; color: #8bffa9; font-size: 0.85rem; }
+    .auth-terminal { position: relative; z-index: 1; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 100vh; min-height: 100dvh; padding: calc(18px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px)); border: 0; border-radius: 0; background: rgba(0, 0, 0, 0.96); box-shadow: 0 0 40px rgba(0, 255, 90, 0.12); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .auth-terminal-header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; color: #8bffa9; font-size: clamp(0.65rem, 2vw, 0.85rem); }
+    #auth-terminal-title { min-width: 0; overflow-wrap: anywhere; }
     .auth-terminal-close { border: 1px solid rgba(48, 255, 117, 0.45); border-radius: 6px; padding: 6px 10px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+    .auth-log-output { flex: 1 1 auto; min-height: 0; overflow: hidden; color: rgba(113, 255, 152, 0.86); font-size: clamp(0.65rem, 2.15vw, 0.82rem); line-height: 1.45; overflow-wrap: anywhere; }
+    .auth-log-line { min-height: 1.45em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .auth-security-status { flex: 0 0 auto; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(48, 255, 117, 0.24); color: #8bffa9; font-size: clamp(0.8rem, 2.6vw, 0.95rem); }
     .auth-terminal-prompt { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: clamp(0.9rem, 2.8vw, 1.05rem); line-height: 1.8; }
     .auth-terminal-input { flex: 1 1 180px; min-width: 0; border: 0; outline: 0; padding: 4px 0; background: transparent; color: #30ff75; caret-color: #30ff75; font: inherit; }
     .auth-terminal-input::placeholder { color: rgba(48, 255, 117, 0.45); }
     .auth-terminal-submit { display: block; margin-top: 20px; border: 1px solid rgba(48, 255, 117, 0.55); border-radius: 7px; padding: 9px 16px; background: rgba(48, 255, 117, 0.08); color: inherit; font: inherit; cursor: pointer; }
     .auth-terminal-submit:disabled, .auth-terminal-input:disabled { opacity: 0.6; cursor: wait; }
     .auth-terminal-error { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; border: 1px solid rgba(255, 65, 65, 0.5); border-radius: 7px; padding: 9px 12px; background: rgba(70, 0, 0, 0.5); color: #ff6767; }
-    #auth-modal.code-error .auth-terminal { border-color: rgba(255, 65, 65, 0.8); color: #ff6767; }
+    #auth-modal.code-error .auth-terminal { border-color: rgba(255, 65, 65, 0.8); background: rgba(22, 0, 0, 0.64); color: #ff6767; animation: auth-glitch-shake 0.12s steps(2, end) infinite; }
+    #auth-modal.code-error .auth-log-output { color: #ff4545; }
     #auth-modal.code-error .auth-terminal-close { border-color: rgba(255, 65, 65, 0.55); }
+    #auth-modal.code-error::after { position: absolute; z-index: 2; inset: 0; pointer-events: none; content: ""; opacity: 0.5; background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 35, 35, 0.16) 4px), linear-gradient(90deg, transparent 0 47%, rgba(255, 35, 35, 0.14) 48% 52%, transparent 53%); mix-blend-mode: screen; animation: auth-glitch-noise 0.14s steps(2, end) infinite; }
+    @keyframes auth-glitch-shake {
+      0%, 100% { transform: translate(0, 0) skew(0); filter: hue-rotate(0deg); }
+      25% { transform: translate(4px, -2px) skew(1deg); filter: hue-rotate(35deg); }
+      50% { transform: translate(-3px, 2px) skew(-1deg); }
+      75% { transform: translate(2px, 1px); filter: hue-rotate(-25deg); }
+    }
+    @keyframes auth-glitch-noise {
+      0% { transform: translateX(-2%); clip-path: inset(8% 0 76%); }
+      50% { transform: translateX(2%); clip-path: inset(42% 0 38%); }
+      100% { transform: translateX(-1%); clip-path: inset(78% 0 8%); }
+    }
     #auth-modal.success-transition .auth-rain-canvas, #auth-modal.success-transition .auth-terminal { opacity: 0; }
     #auth-modal.success-transition .auth-terminal { transform: scale(1.04); }
     @media (prefers-reduced-motion: reduce) {
       #auth-modal, .auth-rain-canvas, .auth-terminal { transition-duration: 0.01ms; }
+      #auth-modal.code-error .auth-terminal, #auth-modal.code-error::after { animation: none; }
     }
     .push-support-message { font-size: 0.92rem; line-height: 1.7; color: var(--text); }
 
@@ -382,7 +400,7 @@
 
           <div class="header-right">
             <div id="weather" class="weather">福岡 --°C</div>
-            <button class="settings-btn" onclick="openAuthModal()">設定</button>
+            <button class="settings-btn" onclick="openAuthModal()">設定を開く</button>
           </div>
         </header>
 
@@ -469,6 +487,12 @@
 
     <!-- 🔗 小型LINKボタン集 -->
     <div id="home-links" class="home-links-grid"></div>
+  </div>
+
+
+  <!-- ================= 裏ミニゲーム画面 ================= -->
+  <div id="mini-games-view" class="view hidden" aria-busy="false">
+    <div id="mini-games-content" class="mini-games-content" aria-live="polite">ミニゲームを読み込んでいます…</div>
   </div>
 
 
@@ -571,13 +595,15 @@
     <canvas id="auth-rain" class="auth-rain-canvas" aria-hidden="true"></canvas>
     <div class="auth-terminal" onclick="event.stopPropagation()">
       <div class="auth-terminal-header">
-        <span id="auth-terminal-title">SECURE SYSTEM :: AUTHENTICATION REQUIRED</span>
+        <span id="auth-terminal-title">SECURE SYSTEM :: INITIALIZING CONNECTION</span>
         <button type="button" class="auth-terminal-close" onclick="closeAuthModal()">閉じる</button>
       </div>
-      <form id="auth-form" onsubmit="verifyPassword(event)">
+      <div id="auth-log-output" class="auth-log-output" aria-hidden="true"></div>
+      <div id="auth-security-status" class="auth-security-status hidden" role="status" aria-live="polite">[SECURITY] Authentication Required...</div>
+      <form id="auth-form" class="hidden" onsubmit="verifyPassword(event)">
         <label class="auth-terminal-prompt" for="pwd-input">
           <span>user@system:~$ enter password:</span>
-          <input type="password" id="pwd-input" class="auth-terminal-input" placeholder="••••••••" autocomplete="current-password" autofocus>
+          <input type="password" id="pwd-input" class="auth-terminal-input" placeholder="••••••••" autocomplete="current-password">
         </label>
         <div id="auth-error" class="auth-terminal-error hidden" role="alert">
           <span>ACCESS DENIED :: パスワードが違います</span>
@@ -1548,17 +1574,79 @@
 
 
     function openAuthModal() {
+      if (authAnimationTimeout !== null) {
+        window.clearTimeout(authAnimationTimeout);
+        authAnimationTimeout = null;
+      }
+      if (authLogInterval !== null) {
+        window.clearInterval(authLogInterval);
+        authLogInterval = null;
+      }
+      stopCodeRain();
+      authBusy = false;
+
       document.getElementById('pwd-input').value = '';
+      document.getElementById('pwd-input').disabled = false;
+      document.querySelector('.auth-terminal-submit').disabled = false;
+      document.getElementById('auth-log-output').replaceChildren();
+      document.getElementById('auth-form').classList.add('hidden');
+      document.getElementById('auth-security-status').classList.add('hidden');
+      document.getElementById('auth-terminal-title').textContent = 'SECURE SYSTEM :: INITIALIZING CONNECTION';
       closeAuthError();
       const modal = document.getElementById('auth-modal');
       modal.classList.remove('success-transition', 'code-error');
       modal.classList.add('active');
-      window.requestAnimationFrame(() => document.getElementById('pwd-input').focus());
+      authScanStartedAt = performance.now();
+      appendAuthLogLine();
+      authLogInterval = window.setInterval(appendAuthLogLine, 28);
+      authAnimationTimeout = window.setTimeout(finishAuthLogScan, 2000);
     }
     let authAnimationFrame = null;
     let authAnimationTimeout = null;
     let authRainResizeHandler = null;
+    let authLogInterval = null;
+    let authScanStartedAt = 0;
     let authBusy = false;
+
+    function appendAuthLogLine() {
+      const output = document.getElementById('auth-log-output');
+      const elapsed = ((performance.now() - authScanStartedAt) / 1000).toFixed(4);
+      const ip = `192.168.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`;
+      const progress = Math.floor(Math.random() * 101);
+      const entries = [
+        `${ip} connecting... [OK]`,
+        `kernel: [NET] packet filter initialized on eth0 [OK]`,
+        `${ip} handshake verified; TLS session established`,
+        `systemd[1]: Started Network Monitor Service. [OK]`,
+        `[INFO] scanning gateway ${ip} :: route active`,
+        `download: security-index.dat [${progress}%] ${'='.repeat(Math.floor(progress / 5))}`,
+        `[INFO] resolving host node-${Math.floor(Math.random() * 90 + 10)}.local`,
+        `audit: inbound packet accepted from ${ip} [OK]`,
+        `memory check: ${Math.floor(Math.random() * 8000 + 1000)} MB available [OK]`,
+        `watchdog: heartbeat ${Math.floor(Math.random() * 900 + 100)}ms [OK]`
+      ];
+      const line = document.createElement('div');
+      line.className = 'auth-log-line';
+      line.textContent = `[ ${elapsed}] ${entries[Math.floor(Math.random() * entries.length)]}`;
+      output.appendChild(line);
+      while (output.childElementCount > 80) output.firstElementChild.remove();
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function finishAuthLogScan() {
+      authAnimationTimeout = null;
+      if (authLogInterval !== null) {
+        window.clearInterval(authLogInterval);
+        authLogInterval = null;
+      }
+      const modal = document.getElementById('auth-modal');
+      if (!modal.classList.contains('active')) return;
+
+      document.getElementById('auth-terminal-title').textContent = 'SECURE SYSTEM :: AUTHENTICATION REQUIRED';
+      document.getElementById('auth-security-status').classList.remove('hidden');
+      document.getElementById('auth-form').classList.remove('hidden');
+      window.requestAnimationFrame(() => document.getElementById('pwd-input').focus());
+    }
 
     function stopCodeRain() {
       if (authAnimationFrame !== null) {
@@ -1625,6 +1713,10 @@
         window.clearTimeout(authAnimationTimeout);
         authAnimationTimeout = null;
       }
+      if (authLogInterval !== null) {
+        window.clearInterval(authLogInterval);
+        authLogInterval = null;
+      }
       stopCodeRain();
       authBusy = false;
       document.getElementById('pwd-input').disabled = false;
@@ -1643,7 +1735,14 @@
       passwordInput.disabled = true;
       submitButton.disabled = true;
 
-      if ((portalData.customPassword && input === portalData.customPassword) || input === _0x9b) {
+      if (input === 'yumirima') {
+        closeAuthError();
+        showMiniGames();
+        startCodeRain('#30ff75');
+        window.requestAnimationFrame(() => modal.classList.add('success-transition'));
+        const transitionDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 250 : 1800;
+        authAnimationTimeout = window.setTimeout(closeAuthModal, transitionDuration);
+      } else if ((portalData.customPassword && input === portalData.customPassword) || input === _0x9b) {
         settingsAuthorized = true;
         closeAuthError();
         showSettings();
@@ -1655,12 +1754,92 @@
         modal.classList.add('code-error');
         document.getElementById('auth-error').classList.remove('hidden');
         startCodeRain('#ff3030');
-        authAnimationTimeout = window.setTimeout(closeAuthModal, 2000);
+        authAnimationTimeout = window.setTimeout(closeAuthModal, 1500);
+      }
+    }
+
+
+    let miniGamesModulePromise = null;
+    let miniGamesStylesPromise = null;
+    let miniGamesCleanup = null;
+
+    function loadMiniGamesStyles() {
+      if (miniGamesStylesPromise) return miniGamesStylesPromise;
+      miniGamesStylesPromise = new Promise((resolve, reject) => {
+        const stylesheet = document.createElement('link');
+        stylesheet.rel = 'stylesheet';
+        stylesheet.href = './mini-games.css';
+        stylesheet.onload = resolve;
+        stylesheet.onerror = () => {
+          stylesheet.remove();
+          miniGamesStylesPromise = null;
+          reject(new Error('ミニゲームのスタイルを読み込めませんでした。'));
+        };
+        document.head.appendChild(stylesheet);
+      });
+      return miniGamesStylesPromise;
+    }
+
+    function showMiniGames() {
+      settingsAuthorized = false;
+      document.getElementById('home-view').classList.add('hidden');
+      document.getElementById('settings-view').classList.add('hidden');
+      const gameView = document.getElementById('mini-games-view');
+      gameView.classList.remove('hidden');
+      gameView.setAttribute('aria-busy', 'true');
+      document.getElementById('mini-games-content').textContent = 'ミニゲームを読み込んでいます…';
+      void loadMiniGames();
+    }
+
+    function openSettingsAfterMiniGames() {
+      if (miniGamesCleanup) {
+        miniGamesCleanup();
+        miniGamesCleanup = null;
+      }
+      settingsAuthorized = true;
+      showSettings();
+    }
+
+    async function loadMiniGames() {
+      const content = document.getElementById('mini-games-content');
+      try {
+        if (!miniGamesModulePromise) {
+          miniGamesModulePromise = import('./mini-games.js').catch(error => {
+            miniGamesModulePromise = null;
+            throw error;
+          });
+        }
+        const [, miniGames] = await Promise.all([
+          loadMiniGamesStyles(),
+          miniGamesModulePromise
+        ]);
+        if (document.getElementById('mini-games-view').classList.contains('hidden')) return;
+        if (miniGamesCleanup) miniGamesCleanup();
+        miniGamesCleanup = miniGames.mountMiniGames(content, showHome, openSettingsAfterMiniGames);
+        document.getElementById('mini-games-view').setAttribute('aria-busy', 'false');
+      } catch (error) {
+        console.error('ミニゲームを読み込めませんでした:', error);
+        content.replaceChildren();
+        const message = document.createElement('p');
+        message.className = 'mini-games-load-error';
+        message.textContent = 'ミニゲームを読み込めませんでした。通信状態を確認して、もう一度お試しください。';
+        const retryButton = document.createElement('button');
+        retryButton.type = 'button';
+        retryButton.className = 'mini-games-retry';
+        retryButton.textContent = '再読み込み';
+        retryButton.addEventListener('click', () => {
+          document.getElementById('mini-games-view').setAttribute('aria-busy', 'true');
+          content.textContent = 'ミニゲームを読み込んでいます…';
+          void loadMiniGames();
+        }, { once: true });
+        content.append(message, retryButton);
+        document.getElementById('mini-games-view').setAttribute('aria-busy', 'false');
       }
     }
 
 
     function showSettings() {
+      document.getElementById('mini-games-view').classList.add('hidden');
       document.getElementById('home-view').classList.add('hidden');
       document.getElementById('settings-view').classList.remove('hidden');
       document.getElementById('cfg-password').value = '';
@@ -1677,7 +1856,7 @@
     }
 
 
-    function showHome() { document.getElementById('settings-view').classList.add('hidden'); document.getElementById('home-view').classList.remove('hidden'); settingsAuthorized = false; renderHomeSchedule(); renderHomeSubmissions(); refreshSettingsIfStale(); void expireTodaySubmissions(); }
+    function showHome() { document.getElementById('settings-view').classList.add('hidden'); document.getElementById('mini-games-view').classList.add('hidden'); if (miniGamesCleanup) { miniGamesCleanup(); miniGamesCleanup = null; } document.getElementById('home-view').classList.remove('hidden'); settingsAuthorized = false; renderHomeSchedule(); renderHomeSubmissions(); refreshSettingsIfStale(); void expireTodaySubmissions(); }
 
 
     function renderDateSelectBar() {

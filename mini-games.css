@@ -1,0 +1,41 @@
+.mini-games-content { width: 100%; }
+.mini-games-page { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+.mini-games-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mini-games-eyebrow { color: #6e6e73; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.16em; }
+.mini-games-title { color: #1d1d1f; font-size: clamp(1.45rem, 5vw, 2rem); font-weight: 800; }
+.mini-games-intro { color: #6e6e73; line-height: 1.5; }
+.mini-games-toolbar { display: flex; }
+.mini-games-score { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 16px; background: rgba(255, 255, 255, 0.86); }
+.mini-games-score-label { font-weight: 800; }
+.mini-games-score-progress { width: 100%; height: 12px; accent-color: #34c759; }
+.mini-games-clear-message { color: #20883b; font-weight: 800; }
+.mini-games-settings-button { align-self: flex-start; }
+.mini-games-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mini-game-choice,
+.mini-game-button,
+.mini-games-retry { min-height: 44px; border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px; padding: 10px 14px; background: #fff; color: #1d1d1f; font: inherit; font-weight: 700; cursor: pointer; }
+.mini-game-choice.is-selected { border-color: #007aff; background: rgba(0, 122, 255, 0.1); color: #005fc5; }
+.mini-game-button { border-color: #1d1d1f; background: #1d1d1f; color: #fff; }
+.mini-game-button-secondary { border-color: rgba(0, 0, 0, 0.12); background: rgba(0, 0, 0, 0.05); color: #1d1d1f; }
+.mini-game-button:disabled { cursor: default; opacity: 0.55; }
+.mini-game-stage { display: flex; flex-direction: column; gap: 12px; min-height: 280px; padding: clamp(16px, 4vw, 24px); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 20px; background: rgba(255, 255, 255, 0.92); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); }
+.mini-game-title { font-size: 1.2rem; font-weight: 800; }
+.mini-game-description,
+.mini-game-prompt { color: #6e6e73; line-height: 1.55; }
+.mini-game-content { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; }
+.mini-game-input { width: min(100%, 220px); min-height: 48px; border: 1px solid rgba(0, 0, 0, 0.15); border-radius: 12px; padding: 10px 12px; background: #fff; color: #1d1d1f; font: inherit; font-size: 1.1rem; text-align: center; }
+.mini-game-status { min-height: 1.5em; color: #1d1d1f; font-weight: 700; line-height: 1.5; }
+.mini-game-reaction { width: min(100%, 280px); min-height: 110px; background: #ff453a; font-size: 1.15rem; }
+.mini-game-reaction.is-ready { background: #30b957; }
+.mini-game-memory-display { min-height: 2rem; font-size: 2rem; letter-spacing: 0.16em; }
+.mini-game-memory-controls { display: grid; grid-template-columns: repeat(4, 56px); gap: 8px; }
+.mini-game-memory-button { min-height: 52px; border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px; background: #fff; font-size: 1.45rem; cursor: pointer; }
+.mini-games-load-error { color: #b42318; line-height: 1.6; }
+.mini-games-retry { margin-top: 12px; }
+
+@media (max-width: 480px) {
+  .mini-games-header { align-items: flex-start; }
+  .mini-games-header .mini-game-button { padding: 8px 10px; font-size: 0.85rem; }
+  .mini-games-list { grid-template-columns: 1fr; }
+  .mini-game-choice { text-align: left; }
+}
